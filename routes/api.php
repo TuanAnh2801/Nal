@@ -48,11 +48,10 @@ Route::group([
     'prefix' => 'post'
 ], function () {
     Route::get('/', [PostController::class, 'index']);
-    Route::post('/forceDelete', [PostController::class, 'forceDelete']);
     Route::post('/restore', [PostController::class, 'restore']);
     Route::post('/create', [PostController::class, 'store']);
     Route::post('/update/{post}', [PostController::class, 'update']);
     Route::get('/{post}', [PostController::class, 'show']);
-    Route::delete('/delete/{post}', [PostController::class, 'destroy']);
+    Route::post('/delete', [PostController::class, 'destroy']);
 });
 
