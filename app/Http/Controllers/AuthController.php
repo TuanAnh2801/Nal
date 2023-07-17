@@ -1,10 +1,14 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class AuthController extends BaseController
 {
@@ -13,54 +17,115 @@ class AuthController extends BaseController
      *
      * @return void
      */
-    public function __construct()
+
+    public function show()
     {
-        $this->middleware('auth:api', ['except' => ['login','register']]);
+        $user = User::all();
+        return $this->handleRespondSuccess('user', $user);
     }
 
-    /**
-     * Get a JWT via given credentials.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
+    public function me()
+    {
+        $user = Auth::user();
+        return $this->handleRespondSuccess('user', $user);
+    }
 
     public function login()
     {
-
-
         $credentials = request(['email', 'password']);
 
-        if (! $token = auth()->attempt($credentials)) {
+        if (!$token = auth()->attempt($credentials)) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
-
         return $this->respondWithToken($token);
     }
+
     public function register(Request $request)
     {
-      $user= User::create([
-            'email' => $request->email,
-            'name'=> $request->name,
-            'password' => Hash::make($request->password)
-
-        ]);
-        return $this->handleRespondSuccess('register success',$user);
+        $user = new User();
+        $image = $request->image;
+        if ($image) {
+            $image_name = Str::random(10);
+            $image_path = $image->storeAs('public/userImage/' . date('Y/m/d'), $image_name);
+            $image_url = asset(Storage::url($image_path));
+            $user->avatar = $image_url;
+        }
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->password = Hash::make($request->password);
+        $user->save();
+        event(new Registered($user));
+        return $this->handleRespondSuccess('register success', $user);
     }
-    /**
-     * Get the authenticated User.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function me()
+
+    public function updateAll(Request $request, User $user)
     {
-        return response()->json(auth()->user());
+        $image = $request->image;
+        if (!$request->hasFile('image')) {
+            $user->update($request->all());
+            return $this->handleRespondSuccess('update success', $user);
+        }
+        $image_name = Str::random(10);
+        $path = 'public' . Str::after($user->avatar, 'storage');
+        Storage::delete($path);
+        $image_path = $image->storeAs('public/userImage/' . date('Y/m/d'), $image_name);
+        $image_url = asset(Storage::url($image_path));
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->password = Hash::make($request->password);
+        $user->avatar = $image_url;
+        $user->save();
+        return $this->handleRespondSuccess('update success', $user);
     }
 
-    /**
-     * Log the user out (Invalidate the token).
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
+    public function updateMe(Request $request)
+    {
+        $user = Auth::user();
+        if (!$request->hasFile('image')) {
+            $user->update($request->all());
+            return $this->handleRespondSuccess('update success', $user);
+        }
+        $image = $request->image;
+        $image_name = Str::random(10);
+        $path = 'public' . Str::after($user->avatar, 'storage');
+        Storage::delete($path);
+        $image_path = $image->storeAs('public/userImage/' . date('Y/m/d'), $image_name);
+        $image_url = asset(Storage::url($image_path));
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->password = Hash::make($request->password);
+        $user->avatar = $image_url;
+        $user->save();
+        return $this->handleRespondSuccess('update success', $user);
+    }
+
+    public function destroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required',
+            'option' => 'required|in:delete,forceDelete'
+        ]);
+        $user_delete = $request->input('ids');
+        $option = $request->option;
+        $users = User::withTrashed()->whereIn('id', $user_delete)->get();
+        if ($users) {
+            foreach ($users as $user) {
+                $user->save();
+                if ($option === 'delete') {
+                    $user->delete();
+                } elseif ($option === 'forceDelete') {
+                    $user->forceDelete();
+                    $avatar_url = $user->avatar;
+                    $path = 'public' . Str::after($avatar_url, 'storage');
+                    Storage::delete($path);
+                }
+
+            }
+            return $this->handleRespondSuccess('delete success', []);
+        }
+        return $this->handleRespondError('delete false');
+    }
+
     public function logout()
     {
         auth()->logout();
@@ -68,23 +133,13 @@ class AuthController extends BaseController
         return response()->json(['message' => 'Successfully logged out']);
     }
 
-    /**
-     * Refresh a token.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
+
     public function refresh()
     {
         return $this->respondWithToken(auth()->refresh());
     }
 
-    /**
-     * Get the token array structure.
-     *
-     * @param  string $token
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
+
     protected function respondWithToken($token)
     {
         return response()->json([

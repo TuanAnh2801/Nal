@@ -72,9 +72,10 @@ class PostController extends BaseController
                 $post_meta->save();
             }
         }
-        $post = $post->load('post_meta');
+        $meta_data = $post->post_meta()->get();
         return $this->handleRespondSuccess('create success', [
-            'data' => $post,
+            'post' => $post,
+            'post_meta' => $meta_data
         ]);
     }
 
@@ -114,9 +115,11 @@ class PostController extends BaseController
                 $post_meta->save();
 
             }
-            $post = $post->post_meta()->get();
+
+            $meta_data = $post->post_meta()->get();
             return $this->handleRespondSuccess('create success', [
-                'data' => $post,
+                'post' => $post,
+                'post_meta' => $meta_data
             ]);
         }
     }
@@ -145,17 +148,13 @@ class PostController extends BaseController
                             $path = 'public' . Str::after($value_meta, 'storage');
                             Storage::delete($path);
                         }
-
                     }
-
-
                 }
-                return $this->handleRespondSuccess('delete success', []);
+
             }
-            return $this->handleRespondError('delete false');
-
-
+            return $this->handleRespondSuccess('delete success', []);
         }
+        return $this->handleRespondError('delete false');
     }
 
     public function restore(Request $request)
@@ -163,9 +162,8 @@ class PostController extends BaseController
         $request->validate([
             'ids' => 'required',
         ]);
-        $post_id = $request->input('ids');
-        $post_ids = is_array($post_id) ? $post_id : [$post_id];
-        Post::onlyTrashed()->whereIn('id', $post_id)->restore();
+        $post_ids = $request->input('ids');
+        Post::onlyTrashed()->whereIn('id', $post_ids)->restore();
         foreach ($post_ids as $post_id) {
             $post = Post::find($post_id);
             $post->status = 'active';
@@ -174,3 +172,4 @@ class PostController extends BaseController
         return $this->handleRespondSuccess('restore success', true);
     }
 }
+

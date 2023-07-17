@@ -3,7 +3,7 @@
 namespace App\Http;
 use App\Http\Middleware\JWTMiddleware;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
-
+use App\Http\Middleware\CheckRole;
 class Kernel extends HttpKernel
 {
     /**
@@ -66,5 +66,7 @@ class Kernel extends HttpKernel
     ];
     protected $routeMiddleware = [
         'jwt.auth' => \App\Http\Middleware\JWTMiddleware::class,
+        'role' => \App\Http\Middleware\CheckRole::class,
+
     ];
 }

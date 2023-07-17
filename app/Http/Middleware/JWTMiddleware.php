@@ -2,24 +2,21 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Controllers\BaseController;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class JWTMiddleware
+class JWTMiddleware extends BaseController
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
+
     public function handle(Request $request, Closure $next): Response
     {
         try {
             $user = JWTAuth::parseToken()->authenticate();
         } catch (Exception $e) {
             // Xử lý nếu token không hợp lệ, hoặc không tìm thấy người dùng
-            return response()->json(['error' => 'Unauthorized'], 401);
+            return $this->handleRespondError('please login!');
         }
 
         // Lưu thông tin người dùng vào request để có thể sử dụng trong controller

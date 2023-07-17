@@ -5,22 +5,11 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\VerifyEmailController;
 Route::post('/auth/login', [
     AuthController::class, 'login'
 ]);
-Route::post('/auth/refresh', [
-    AuthController::class, 'refresh'
-]);
-Route::post('/auth/logout', [
-    AuthController::class, 'logout']);
 
-Route::post('/auth/register', [
-    AuthController::class, 'register'
-]);
-
-Route::post('/auth/me', [
-    AuthController::class, 'me'
-])->name('me');
 // Media
 Route::group([
     'middlaware' => 'jwt.auth',
@@ -33,7 +22,7 @@ Route::group([
 });
 //Category
 Route::group([
-    'middlaware' => 'jwt.auth',
+    'middleware' => 'jwt.auth',
     'prefix' => 'category'
 ], function () {
     Route::post('/create', [CategoryController::class, 'store']);
@@ -44,7 +33,7 @@ Route::group([
 });
 // post
 Route::group([
-    'middlaware' => 'jwt.auth',
+    'middleware' => 'jwt.auth',
     'prefix' => 'post'
 ], function () {
     Route::get('/', [PostController::class, 'index']);
@@ -54,4 +43,32 @@ Route::group([
     Route::get('/{post}', [PostController::class, 'show']);
     Route::post('/delete', [PostController::class, 'destroy']);
 });
+// Admin
+Route::group([
+    'middleware' => ['jwt.auth', 'role:admin'],
+    'prefix' => 'user'
+], function () {
+    Route::get('/', [AuthController::class, 'show']);
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/update/{user}', [AuthController::class, 'updateAll']);
+    Route::post('/delete', [AuthController::class, 'destroy']);
 
+});
+// User
+Route::group([
+    'middleware' => 'jwt.auth',
+    'prefix' => 'user'
+], function () {
+    Route::get('/me', [AuthController::class, 'me']);
+    Route::get('/update', [AuthController::class, 'updateMe']);
+});
+// Verify email
+Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('verification.verify');
+
+// Resend link to verify email
+Route::post('/email/verify/resend', function (Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+    return back()->with('message', 'Verification link sent!');
+})->middleware(['auth:api', 'throttle:6,1'])->name('verification.send');

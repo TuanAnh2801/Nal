@@ -46,3 +46,5 @@ Route::post('/register',[
 Route::get('/email',function(){
     Mail::to('anhnt5@nal.vn')->send(new Mailtanh());
 });
+
+
