@@ -44,25 +44,20 @@ Route::group([
     Route::get('/{post}', [PostController::class, 'show']);
     Route::post('/delete', [PostController::class, 'destroy']);
 });
-// Admin
+// Phân quyền
 Route::group([
-    'middleware' => ['jwt.auth', 'role:admin'],
+    'middleware' => ['jwt.auth'],
     'prefix' => 'user'
 ], function () {
-    Route::get('/', [AuthController::class, 'show']);
+    Route::get('/', [AuthController::class, 'show'])->middleware('check.permission:show');
+    Route::get('/view', [AuthController::class, 'view']);
+    Route::get('/update', [AuthController::class, 'update'])->middleware('check.permission:update');
     Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/update/{user}', [AuthController::class, 'updateAll']);
-    Route::post('/delete', [AuthController::class, 'destroy']);
+    Route::post('/update/{user}', [AuthController::class, 'updateAll'])->middleware('check.permission:updateAll');
+    Route::post('/delete', [AuthController::class, 'destroy'])->middleware('check.permission:destroy');
 
 });
-// User
-Route::group([
-    'middleware' => 'jwt.auth',
-    'prefix' => 'user'
-], function () {
-    Route::get('/me', [AuthController::class, 'me']);
-    Route::get('/update', [AuthController::class, 'updateMe']);
-});
+
 // Verify email
 Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
     ->middleware(['signed', 'throttle:6,1'])

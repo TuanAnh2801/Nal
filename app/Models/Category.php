@@ -4,23 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 
 class Category extends Model
 {
     use HasFactory;
-
-    protected $table = 'categories';
-    protected $fillable = [
-        'name',
-        'slug',
-        'status',
-        'description',
-        'type',
-        'user_id'
-    ];
-
-    public function post()
+    use SoftDeletes;
+    protected $fillable = ['name', 'description', 'status', 'slug', 'type', 'url', 'author', 'created_at', 'updated_at', 'deleted_at'];
+    public function posts()
     {
-        return $this->belongsToMany(Post::class, 'post_categories', 'category_id', 'post_id');
+        return $this->belongsToMany(Post::class);
     }
 }

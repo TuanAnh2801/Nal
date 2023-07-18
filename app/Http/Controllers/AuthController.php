@@ -24,7 +24,7 @@ class AuthController extends BaseController
         return $this->handleRespondSuccess('user', $user);
     }
 
-    public function me()
+    public function view()
     {
         $user = Auth::user();
         return $this->handleRespondSuccess('user', $user);
@@ -42,6 +42,13 @@ class AuthController extends BaseController
 
     public function register(Request $request)
     {
+        $request->validate([
+            'name' => 'required|string|between:2,100',
+            'email' => 'required|string|email|max:100',
+            'password' => 'required|string|confirmed|min:6',
+            'roles' => 'required|array'
+        ]);
+        $role_id = $request->roleId;
         $user = new User();
         $image = $request->image;
         if ($image) {
@@ -54,12 +61,19 @@ class AuthController extends BaseController
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
         $user->save();
+        $user->roles()->sync($role_id);
         event(new Registered($user));
         return $this->handleRespondSuccess('register success', $user);
     }
 
     public function updateAll(Request $request, User $user)
     {
+        $request->validate([
+            'name' => 'required|string|between:2,100',
+            'email' => 'required|string|email|max:100',
+            'password' => 'required|string|confirmed|min:6',
+            'roles' => 'required|array'
+        ]);
         $image = $request->image;
         if (!$request->hasFile('image')) {
             $user->update($request->all());
@@ -78,8 +92,14 @@ class AuthController extends BaseController
         return $this->handleRespondSuccess('update success', $user);
     }
 
-    public function updateMe(Request $request)
+    public function update(Request $request)
     {
+        $request->validate([
+            'name' => 'required|string|between:2,100',
+            'email' => 'required|string|email|max:100',
+            'password' => 'required|string|confirmed|min:6',
+            'roles' => 'required|array'
+        ]);
         $user = Auth::user();
         if (!$request->hasFile('image')) {
             $user->update($request->all());

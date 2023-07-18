@@ -8,9 +8,5 @@ use Illuminate\Database\Eloquent\Model;
 class Media extends Model
 {
     use HasFactory;
-    protected $fillable= [
-      'avatar',
-      'path',
-      'url_path'
-    ];
+    protected $fillable = ['name', 'path', 'url'];
 }

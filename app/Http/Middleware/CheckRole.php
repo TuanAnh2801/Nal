@@ -12,8 +12,13 @@ class CheckRole extends BaseController
 
     public function handle(Request $request, Closure $next , $roles)
     {
-        if (Auth::check() && Auth::user()->role == $roles ) {
-            return $next($request);
+        if (auth()->check()) {
+            $userRoles = auth()->user()->roles->pluck('name')->toArray();
+            foreach ($roles as $role) {
+                if (in_array($role, $userRoles)) {
+                    return $next($request);
+                }
+            }
         }
 
          return $this->handleRespondError('User does not have permission');

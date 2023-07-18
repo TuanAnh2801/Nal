@@ -4,11 +4,10 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-class DatabaseSeeder extends Seeder
+
+class DataSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
+
     public function run(): void
     {
         DB::table('roles')->insert([
@@ -19,29 +18,16 @@ class DatabaseSeeder extends Seeder
         DB::table('permissions')->insert([
             ['name' => 'view'],
             ['name' => 'update'],
-            ['name' => 'destroy'],
-            ['name' => 'show'],
-            ['name' => 'updateAll'],
-
-
+            ['name' => 'delete'],
         ]);
 
         DB::table('role_permission')->insert([
             ['role_id' => 1, 'permission_id' => 1],
             ['role_id' => 1, 'permission_id' => 2],
-            ['role_id' => 1, 'permission_id' => 9],
-            ['role_id' => 1, 'permission_id' => 10],
-            ['role_id' => 1, 'permission_id' => 11],
-
+            ['role_id' => 1, 'permission_id' => 3],
             ['role_id' => 2, 'permission_id' => 1],
             ['role_id' => 2, 'permission_id' => 2],
-            ['role_id' => 2, 'permission_id' => 9],
-            ['role_id' => 2, 'permission_id' => 10],
-            ['role_id' => 2, 'permission_id' => 11],
-
-        ]);
-        DB::table('role_user')->insert([
-            ['role_id' => 2, 'user_id' => 15],
+            ['role_id' => 2, 'permission_id' => 3],
         ]);
     }
 }
