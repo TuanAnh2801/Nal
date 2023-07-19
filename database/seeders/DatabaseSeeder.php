@@ -14,34 +14,27 @@ class DatabaseSeeder extends Seeder
         DB::table('roles')->insert([
             ['name' => 'admin'],
             ['name' => 'user'],
+            ['name' => 'customer'],
+            ['name' => 'editor'],
         ]);
 
         DB::table('permissions')->insert([
-            ['name' => 'view'],
+            ['name' => 'create'],
+            ['name' => 'read'],
             ['name' => 'update'],
-            ['name' => 'destroy'],
-            ['name' => 'show'],
-            ['name' => 'updateAll'],
+            ['name' => 'delete'],
 
 
         ]);
 
-        DB::table('role_permission')->insert([
-            ['role_id' => 1, 'permission_id' => 1],
-            ['role_id' => 1, 'permission_id' => 2],
-            ['role_id' => 1, 'permission_id' => 9],
-            ['role_id' => 1, 'permission_id' => 10],
-            ['role_id' => 1, 'permission_id' => 11],
+        DB::table('permission_role')->insert([
 
-            ['role_id' => 2, 'permission_id' => 1],
-            ['role_id' => 2, 'permission_id' => 2],
-            ['role_id' => 2, 'permission_id' => 9],
-            ['role_id' => 2, 'permission_id' => 10],
-            ['role_id' => 2, 'permission_id' => 11],
+            ['role_id' => 3, 'permission_id' => 2],
+            ['role_id' => 4, 'permission_id' => 1],
+            ['role_id' => 4, 'permission_id' => 2],
+            ['role_id' => 4, 'permission_id' => 3],
 
         ]);
-        DB::table('role_user')->insert([
-            ['role_id' => 2, 'user_id' => 15],
-        ]);
+
     }
 }

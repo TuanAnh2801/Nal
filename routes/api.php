@@ -6,11 +6,17 @@ use App\Http\Controllers\MediaController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\VerifyEmailController;
+use App\Http\Controllers\UserController;
 
 Route::post('/auth/login', [
     AuthController::class, 'login'
 ]);
-
+Route::group([
+    'prefix' => 'user'
+], function () {
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/register', [AuthController::class, 'register']);
+});
 // Media
 Route::group([
     'middlaware' => 'jwt.auth',
@@ -26,11 +32,11 @@ Route::group([
     'middleware' => 'jwt.auth',
     'prefix' => 'category'
 ], function () {
-    Route::post('/create', [CategoryController::class, 'store']);
+    Route::post('/create', [CategoryController::class, 'store'])->middleware('can:create,App\Models\Category');
     Route::get('/', [CategoryController::class, 'index']);
-    Route::post('/update/{category}', [CategoryController::class, 'update']);
+    Route::post('/update/{category}', [CategoryController::class, 'update'])->middleware('can:update,category');
     Route::get('/{category} ', [CategoryController::class, 'show']);
-    Route::delete('/delete/{category}', [CategoryController::class, 'destroy']);
+    Route::delete('/delete/{category}', [CategoryController::class, 'destroy'])->middleware('can:delete,category');
 });
 // post
 Route::group([
@@ -38,23 +44,24 @@ Route::group([
     'prefix' => 'post'
 ], function () {
     Route::get('/', [PostController::class, 'index']);
-    Route::post('/restore', [PostController::class, 'restore']);
-    Route::post('/create', [PostController::class, 'store']);
-    Route::post('/update/{post}', [PostController::class, 'update']);
+    Route::post('/restore', [PostController::class, 'restore'])->middleware('can:restore,App\Models\Post');
+    Route::post('/create', [PostController::class, 'store'])->middleware('can:create,App\Models\Post');
+    Route::post('/update/{post}', [PostController::class, 'update'])->middleware('can:update,post');
     Route::get('/{post}', [PostController::class, 'show']);
-    Route::post('/delete', [PostController::class, 'destroy']);
+    Route::post('/delete', [PostController::class, 'destroy'])->middleware('can:delete,App\Models\Post');
 });
 // Phân quyền
 Route::group([
-    'middleware' => ['jwt.auth'],
+    'middleware' => 'jwt.auth',
     'prefix' => 'user'
 ], function () {
-    Route::get('/', [AuthController::class, 'show'])->middleware('check.permission:show');
-    Route::get('/view', [AuthController::class, 'view']);
-    Route::get('/update', [AuthController::class, 'update'])->middleware('check.permission:update');
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/update/{user}', [AuthController::class, 'updateAll'])->middleware('check.permission:updateAll');
-    Route::post('/delete', [AuthController::class, 'destroy'])->middleware('check.permission:destroy');
+    Route::get('/', [UserController::class, 'show'])->middleware('can:show,App\Models\User');
+    Route::get('/viewMe', [UserController::class, 'view']);
+    Route::get('/view', [UserController::class, 'index'])->middleware('can:viewAll,App\Models\User');
+    Route::post('/create', [UserController::class, 'create'])->middleware('can:create,App\Models\User');
+    Route::post('/update', [UserController::class, 'update']);
+    Route::post('/update/{user}', [UserController::class, 'updateAll'])->middleware('can:updateAll,user');
+    Route::post('/delete', [UserController::class, 'destroy'])->middleware('can:delete,App\Models\User');
 
 });
 

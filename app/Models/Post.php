@@ -16,7 +16,7 @@ class Post extends Model
     {
         return $this->belongsToMany(Category::class);
     }
-    public function postMeta()
+    public function post_meta()
     {
         return $this->hasMany(PostMeta::class);
     }

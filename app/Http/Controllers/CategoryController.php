@@ -8,9 +8,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
+use App\Traits\HasPermission;
 
 class CategoryController extends BaseController
 {
+    use HasPermission;
+
     public function index(Request $request)
     {
         $status = $request->input('status');
@@ -32,7 +35,6 @@ class CategoryController extends BaseController
             $query = $query->where('name', 'LIKE', '%' . $search . '%');
         }
         $categories = $query->orderBy($sort_by, $sort)->paginate($limit);
-
         return $this->handleRespondSuccess($categories, 'Get all categories');
     }
 
@@ -45,52 +47,62 @@ class CategoryController extends BaseController
     public function store(CategoryRequest $request, Category $category)
     {
         $user = Auth::id();
-        $image = $request->image;
-        if ($image) {
-            $image_name = Str::random(10);
-            $image_path = $image->storeAs('public/upload/' . date('Y/m/d'), $image_name);
-            $image_url = asset(Storage::url($image_path));
-            $category->url_image = $image_url;
+        if ($user->hasPermission('create')) {
+            $image = $request->image;
+            if ($image) {
+                $image_name = Str::random(10);
+                $image_path = $image->storeAs('public/upload/' . date('Y/m/d'), $image_name);
+                $image_url = asset(Storage::url($image_path));
+                $category->image = $image_url;
+            }
+            $category->name = $request->name;
+            $category->status = $request->status;
+            $category->description = $request->description;
+            $category->type = $request->type;
+            $category->author = $user;
+            $category->slug = Str::slug($request->name);
+            $category->save();
+            return $this->handleRespondSuccess('create success', $category);
         }
-        $category->name = $request->name;
-        $category->status = $request->status;
-        $category->description = $request->description;
-        $category->type = $request->type;
-        $category->user_id = $user;
-        $category->slug = Str::slug($request->name);
-        $category->save();
-        return $this->handleRespondSuccess('create success', $category);
+        return $this->handleRespondError('you do not have access');
     }
 
     public function update(CategoryRequest $request, Category $category)
     {
+        if (Auth::user()->hasPermission('update')) {
+            $image = $request->image;
+            if (!$request->hasFile('image')) {
+                $category->update($request->all());
+                $category->slug = Str::slug($request->name);
+                return $this->handleRespondSuccess('update success', $category);
+            }
+            $image_name = Str::random(10);
+            $path = 'public' . Str::after($category->url_image, 'storage');
+            Storage::delete($path);
+            $image_path = $image->storeAs('public/upload/' . date('Y/m/d'), $image_name);
+            $image_url = asset(Storage::url($image_path));
+            $category->name = $request->name;
+            $category->description = $request->description;
+            $category->type = $request->type;
 
-        $image = $request->image;
-        if (!$request->hasFile('image')) {
-            $category->update($request->all());
             $category->slug = Str::slug($request->name);
+            $category->url_image = $image_url;
+            $category->save();
             return $this->handleRespondSuccess('update success', $category);
         }
-        $image_name = Str::random(10);
-        $path = 'public' . Str::after($category->url_image, 'storage');
-        Storage::delete($path);
-        $image_path = $image->storeAs('public/upload/' . date('Y/m/d'), $image_name);
-        $image_url = asset(Storage::url($image_path));
-        $category->name = $request->name;
-        $category->description = $request->description;
-        $category->type = $request->type;
-
-        $category->slug = Str::slug($request->name);
-        $category->url_image = $image_url;
-        $category->save();
-        return $this->handleRespondSuccess('update success', $category);
+        return $this->handleRespondError('you do not have access');
     }
 
     public function destroy(Category $category)
     {
-        $path = 'public' . Str::after($category->url_image, 'storage');
-        $category->delete();
-        Storage::delete($path);
-        return $this->handleRespondSuccess('delete success', []);
+        if (Auth::user()->hasPermission('delete')) {
+            if ($category->image) {
+                $path = 'public' . Str::after($category->image, 'storage');
+                Storage::delete($path);
+            }
+            $category->delete();
+            return $this->handleRespondSuccess('delete success', []);
+        }
+        return $this->handleRespondError('you do not have access');
     }
 }

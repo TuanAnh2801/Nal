@@ -9,54 +9,35 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use App\Traits\HasPermission;
 
 class AuthController extends BaseController
 {
-    /**
-     * Create a new AuthController instance.
-     *
-     * @return void
-     */
+    use HasPermission;
 
-    public function show()
-    {
-        $user = User::all();
-        return $this->handleRespondSuccess('user', $user);
-    }
-
-    public function view()
-    {
-        $user = Auth::user();
-        return $this->handleRespondSuccess('user', $user);
-    }
 
     public function login()
     {
         $credentials = request(['email', 'password']);
 
         if (!$token = auth()->attempt($credentials)) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            return $this->handleRespondError('Tai khoan hoac mat khau k dung');
         }
         return $this->respondWithToken($token);
     }
 
     public function register(Request $request)
     {
+
         $request->validate([
             'name' => 'required|string|between:2,100',
             'email' => 'required|string|email|max:100',
-            'password' => 'required|string|confirmed|min:6',
+            'password' => 'required|string',
             'roles' => 'required|array'
         ]);
-        $role_id = $request->roleId;
+
+        $role_id = $request->roles;
         $user = new User();
-        $image = $request->image;
-        if ($image) {
-            $image_name = Str::random(10);
-            $image_path = $image->storeAs('public/userImage/' . date('Y/m/d'), $image_name);
-            $image_url = asset(Storage::url($image_path));
-            $user->avatar = $image_url;
-        }
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
@@ -66,31 +47,6 @@ class AuthController extends BaseController
         return $this->handleRespondSuccess('register success', $user);
     }
 
-    public function updateAll(Request $request, User $user)
-    {
-        $request->validate([
-            'name' => 'required|string|between:2,100',
-            'email' => 'required|string|email|max:100',
-            'password' => 'required|string|confirmed|min:6',
-            'roles' => 'required|array'
-        ]);
-        $image = $request->image;
-        if (!$request->hasFile('image')) {
-            $user->update($request->all());
-            return $this->handleRespondSuccess('update success', $user);
-        }
-        $image_name = Str::random(10);
-        $path = 'public' . Str::after($user->avatar, 'storage');
-        Storage::delete($path);
-        $image_path = $image->storeAs('public/userImage/' . date('Y/m/d'), $image_name);
-        $image_url = asset(Storage::url($image_path));
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->password = Hash::make($request->password);
-        $user->avatar = $image_url;
-        $user->save();
-        return $this->handleRespondSuccess('update success', $user);
-    }
 
     public function update(Request $request)
     {
@@ -101,20 +57,11 @@ class AuthController extends BaseController
             'roles' => 'required|array'
         ]);
         $user = Auth::user();
-        if (!$request->hasFile('image')) {
-            $user->update($request->all());
-            return $this->handleRespondSuccess('update success', $user);
-        }
-        $image = $request->image;
-        $image_name = Str::random(10);
         $path = 'public' . Str::after($user->avatar, 'storage');
         Storage::delete($path);
-        $image_path = $image->storeAs('public/userImage/' . date('Y/m/d'), $image_name);
-        $image_url = asset(Storage::url($image_path));
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
-        $user->avatar = $image_url;
         $user->save();
         return $this->handleRespondSuccess('update success', $user);
     }
@@ -135,9 +82,6 @@ class AuthController extends BaseController
                     $user->delete();
                 } elseif ($option === 'forceDelete') {
                     $user->forceDelete();
-                    $avatar_url = $user->avatar;
-                    $path = 'public' . Str::after($avatar_url, 'storage');
-                    Storage::delete($path);
                 }
 
             }
