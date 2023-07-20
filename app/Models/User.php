@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use App\Traits\HasPermission;
-
+use App\Models\UserMeta;
 class User extends Authenticatable implements JWTSubject, MustVerifyEmail
 {
     use HasFactory, Notifiable, HasPermission;
@@ -19,7 +19,8 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
         'name',
         'email',
         'password',
-        'avatar'
+        'avatar',
+        'status'
     ];
 
 
@@ -47,5 +48,9 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
     public function roles()
     {
         return $this->belongsToMany(Role::class);
+    }
+    public function user_meta()
+    {
+        return $this->hasMany(UserMeta::class);
     }
 }

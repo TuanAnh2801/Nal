@@ -20,22 +20,24 @@ class PostPolicy
     }
     public function show(User $user)
     {
-        return $user->hasRole('editor');
+        return $user->hasRole('editor') || $user->hasPermission('read');
     }
     public function create(User $user)
     {
-        return $user->hasRole('editor');
+        return $user->hasRole('editor') || $user->hasPermission('create');
     }
 
     public function update(User $user, Post $post)
     {
-        return $user->hasRole('editor');
+        return $user->hasRole('editor') || $user->hasPermission('update');
     }
 
-    public function delete()
+    public function delete(User $user)
     {
+        return $user->hasPermission('delete');
     }
-    public function restore()
+    public function restore(User $user)
     {
+        return $user->hasPermission('update');
     }
 }

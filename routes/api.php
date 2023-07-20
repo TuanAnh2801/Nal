@@ -36,7 +36,8 @@ Route::group([
     Route::get('/', [CategoryController::class, 'index']);
     Route::post('/update/{category}', [CategoryController::class, 'update'])->middleware('can:update,category');
     Route::get('/{category} ', [CategoryController::class, 'show']);
-    Route::delete('/delete/{category}', [CategoryController::class, 'destroy'])->middleware('can:delete,category');
+    Route::post('/delete', [CategoryController::class, 'destroy'])->middleware('can:delete,App\Models\Category');
+    Route::post('/restore', [CategoryController::class, 'restore'])->middleware('can:restore,App\Models\Category');
 });
 // post
 Route::group([
@@ -62,6 +63,10 @@ Route::group([
     Route::post('/update', [UserController::class, 'update']);
     Route::post('/update/{user}', [UserController::class, 'updateAll'])->middleware('can:updateAll,user');
     Route::post('/delete', [UserController::class, 'destroy'])->middleware('can:delete,App\Models\User');
+    Route::post('/setMood', [UserController::class, 'setMood']);
+    Route::post('/updateMood/{user_meta}', [UserController::class, 'updateMood']);
+    Route::post('/getMood', [UserController::class, 'getMood']);
+
 
 });
 

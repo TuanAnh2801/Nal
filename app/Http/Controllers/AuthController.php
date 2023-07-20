@@ -28,21 +28,19 @@ class AuthController extends BaseController
 
     public function register(Request $request)
     {
-
         $request->validate([
             'name' => 'required|string|between:2,100',
             'email' => 'required|string|email|max:100',
             'password' => 'required|string',
             'roles' => 'required|array'
         ]);
-
         $role_id = $request->roles;
         $user = new User();
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
         $user->save();
-        $user->roles()->sync($role_id);
+//        $user->roles()->sync($role_id);
         event(new Registered($user));
         return $this->handleRespondSuccess('register success', $user);
     }

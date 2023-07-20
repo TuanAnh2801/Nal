@@ -20,21 +20,26 @@ class UserPolicy
 
     public function show(User $user)
     {
+        return $user->hasPermission('read');
     }
 
     public function viewAll(User $user)
     {
+        return $user->hasPermission('read');
     }
 
     public function create(User $user)
     {
+        return $user->hasPermission('create');
     }
     public function updateAll(User $user)
     {
+        return $user->hasPermission('update');
     }
 
     public function delete(User $user)
     {
+        return $user->hasPermission('delete');
     }
 
 }
