@@ -182,32 +182,42 @@ class UserController extends BaseController
     {
         $request->validate([
             'key' => 'required',
-            'value' => 'required',
+            'value' => 'required|array',
         ]);
-        if ($request->has('key') && $request->has('value')) {
+        $key = $request->key;
+        $value = $request->value;
+        $user_metas = $request->user()->user_meta();
+        if ($key === 'favorite') {
+            if ($user_metas->where('key', 'favorite')->exists()) {
+                $user_meta = $user_metas->where('key', 'favorite')->first();
+                $favorite = explode(',', $user_meta->value);
+                $favorite = array_unique(array_merge($favorite, $value));
+                $user_meta->value = implode(',', $favorite);
+                $user_meta->save();
+                return $this->handleRespondSuccess('setmood success', $user_meta);
+            }
             $user_meta = new UserMeta();
             $user_meta->user_id = Auth::id();
             $user_meta->key = $request->key;
-            $user_meta->value = $request->value;
+            $user_meta->value = implode(',', $value);
             $user_meta->save();
-            return $this->handleRespondSuccess('setMood success ', $user_meta);
+            return $this->handleRespondSuccess('setmood success', $user_meta);
         }
-        return $this->handleRespondError('Please enter key and value');
-    }
+        if ($key === 'unfavorite') {
+            $user_meta = $user_metas->where('key', 'favorite')->first();
+            $unfavorite = $request->value;
+            $favorite = explode(',', $user_meta->value);
+            $update_favorite = array_diff($favorite, $unfavorite);
+            if ($update_favorite === []) {
+                $user_meta->delete();
+                return $this->handleRespondSuccess('unfavorite success', true);
+            }
+            $user_meta->value = implode(',', $update_favorite);
+            $user_meta->save();
+            return $this->handleRespondSuccess('unfavorite success', true);
+        }
 
-    public function updateMood(Request $request, UserMeta $userMeta)
-    {
-        $request->validate([
-            'key' => 'required',
-            'value' => 'required',
-        ]);
-        if ($userMeta) {
-            $userMeta->key = $request->key;
-            $userMeta->value = $request->value;
-            $userMeta->save();
-            return $this->handleRespondSuccess('update success', $userMeta);
-        }
-        return $this->handleRespondError('update false');
+
     }
 
     public function getMood()
