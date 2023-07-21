@@ -18,7 +18,7 @@ class CreatePostsTable extends Migration
             $table->string('title');
             $table->text('content');
             $table->string('slug');
-            $table->enum('status', ['draft', 'published', 'archived'])->default('draft');
+            $table->enum('status', ['active', 'deactivate'])->default('draft');
             $table->string('type');
             $table->string('author');
             $table->timestamps();

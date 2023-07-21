@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Post;
 use App\Http\Requests\PostRequest;
+use App\Models\PostDetail;
 use App\Models\PostMeta;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Traits\HasPermission;
+use Stichoza\GoogleTranslate\GoogleTranslate;
 
 class PostController extends BaseController
 {
@@ -42,7 +45,13 @@ class PostController extends BaseController
 
     public function show(Post $post)
     {
-        $data = $post->categories()->where('status', '=', 'active')->get();
+        $category = $post->categories()->where('status', '=', 'active')->get();
+        $post_detail = $post->post_detail()->get();
+        $data = [
+            'category' => $category,
+            'post' => $post,
+            'post_detail' => $post_detail
+        ];
         return $this->handleRespondSuccess('data', $data);
     }
 
@@ -51,18 +60,33 @@ class PostController extends BaseController
         if (!Auth::user()->hasPermission('create')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
+        $languages = ['ko', 'zh-CN', 'zh-TW', 'th', 'ja', 'vi'];
         $user = Auth::id();
+        $tr = new GoogleTranslate();
+        $title = $request->title;
+        $status = $request->status;
+        $content = $request->contents;
+        $type = $request->type;
         $category_id = $request->category;
-        $post->title = $request->title;
-        $post->status = $request->status;
-        $post->type = $request->type;
-        $post->user_id = $user;
-        $post->slug = Str::slug($request->title);
+        $post->title = $title;
+        $post->status = $status;
+        $post->content = $content;
+        $post->type = $type;
+        $post->author = $user;
+        $post->slug = Str::slug($title);
         $post->save();
         $post->categories()->sync($category_id);
+        foreach ($languages as $language) {
+            $post_detail = new PostDetail();
+            $post_detail->title = $tr->setSource('en')->setTarget($language)->translate($title);
+            $post_detail->content = $tr->setSource('en')->setTarget($language)->translate($content);
+            $post_detail->lang = $language;
+            $post_detail->post_id = $post->id;
+            $post_detail->save();
+        }
         if ($request->has('key') && $request->has('value')) {
-                $key = $request->key;
-                $value = $request->value;
+            $key = $request->key;
+            $value = $request->value;
             foreach ($key as $i => $meta_key) {
                 $post_meta = new PostMeta();
                 $post_meta->post_id = $post->id;
@@ -89,13 +113,29 @@ class PostController extends BaseController
         if (!Auth::user()->hasPermission('update')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
+        $tr = new GoogleTranslate();
+        $languages = ['ko', 'zh-CN', 'zh-TW', 'th', 'ja', 'vi'];
+        $title = $request->title;
+        $status = $request->status;
+        $content = $request->contents;
+        $type = $request->type;
         $category_id = $request->category;
-        $post->title = $request->title;
-        $post->status = $request->status;
-        $post->type = $request->type;
-        $post->slug = Str::slug($request->title);
+        $post->title = $title;
+        $post->status = $status;
+        $post->content = $content;
+        $post->type = $type;
+        $post->slug = Str::slug($title);
         $post->save();
         $post->categories()->sync($category_id);
+        $post->post_detail()->delete();
+        foreach ($languages as $language) {
+            $post_detail = new PostDetail();
+            $post_detail->title = $tr->setSource('en')->setTarget('ka')->translate($title);
+            $post_detail->content = $tr->setSource('en')->setTarget('ka')->translate($content);
+            $post_detail->content = $language;
+            $post_detail->post_id = $post->id;
+            $post_detail->save();
+        }
         if ($request->has('key') && $request->has('value')) {
             $post_metas = $post->post_meta()->get();
             $key = $request->key;
@@ -124,7 +164,7 @@ class PostController extends BaseController
             }
 
             $meta_data = $post->post_meta()->get();
-            return $this->handleRespondSuccess('create success', [
+            return $this->handleRespondSuccess('update success', [
                 'post' => $post,
                 'post_meta' => $meta_data
             ]);

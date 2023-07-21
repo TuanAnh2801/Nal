@@ -41,7 +41,11 @@ class CategoryController extends BaseController
 
     public function show(Category $category)
     {
-        $data = $category->post()->where('status', '=', 'active')->get();
+        $post = $category->post()->where('status', '=', 'active')->get();
+        $data = [
+          'category'=>$category,
+          'post'=> $post
+        ];
         return $this->handleRespondSuccess('data', $data);
     }
 
@@ -62,7 +66,7 @@ class CategoryController extends BaseController
         $category->status = $request->status;
         $category->description = $request->description;
         $category->type = $request->type;
-        $category->user_id = $user;
+        $category->author = $user;
         $category->slug = Str::slug($request->name);
         $category->save();
         return $this->handleRespondSuccess('create success', $category);

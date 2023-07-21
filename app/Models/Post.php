@@ -20,5 +20,7 @@ class Post extends Model
     {
         return $this->hasMany(PostMeta::class);
     }
-
+    public function post_detail(){
+        return $this->hasMany(PostDetail::class);
+    }
 }
