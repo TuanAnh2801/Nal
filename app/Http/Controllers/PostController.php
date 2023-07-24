@@ -6,13 +6,12 @@ use App\Models\Post;
 use App\Http\Requests\PostRequest;
 use App\Models\PostDetail;
 use App\Models\PostMeta;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Traits\HasPermission;
-use Stichoza\GoogleTranslate\GoogleTranslate;
+use App\Helpers\Language;
 
 class PostController extends BaseController
 {
@@ -20,6 +19,9 @@ class PostController extends BaseController
 
     public function index(Request $request)
     {
+        $language = $request->input('language');
+        $languages = config('app.languages');
+        $language = in_array($language, $languages) ? $language : '';
         $status = $request->input('status');
         $layout_status = ['active', 'deactivate'];
         $sort = $request->input('sort');
@@ -38,21 +40,18 @@ class PostController extends BaseController
         if ($search) {
             $query = $query->where('title', 'LIKE', '%' . $search . '%');
         }
+        if ($language) {
+            $query = $query->whereHas('post_detail', function ($q) use ($language) {
+                $q->where('lang', $language);
+            });
+            $query = $query->with(['post_detail' => function ($q) use ($language) {
+                $q->where('lang', $language);
+            }]);
+        }
+
         $posts = $query->orderBy($sort_by, $sort)->paginate($limit);
 
         return $this->handleRespondSuccess('Get posts successfully', $posts);
-    }
-
-    public function show(Post $post)
-    {
-        $category = $post->categories()->where('status', '=', 'active')->get();
-        $post_detail = $post->post_detail()->get();
-        $data = [
-            'category' => $category,
-            'post' => $post,
-            'post_detail' => $post_detail
-        ];
-        return $this->handleRespondSuccess('data', $data);
     }
 
     public function store(PostRequest $request, Post $post)
@@ -60,26 +59,26 @@ class PostController extends BaseController
         if (!Auth::user()->hasPermission('create')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $languages = ['ko', 'zh-CN', 'zh-TW', 'th', 'ja', 'vi'];
+
         $user = Auth::id();
-        $tr = new GoogleTranslate();
+        $languages = config('app.languages');
         $title = $request->title;
         $status = $request->status;
         $content = $request->contents;
         $type = $request->type;
         $category_id = $request->category;
-        $post->title = $title;
-        $post->status = $status;
-        $post->content = $content;
-        $post->type = $type;
+        $post->title = languages('en', $title);
+        $post->status = languages('en', $status);
+        $post->content = languages('en', $content);
+        $post->type = languages('en', $type);
         $post->author = $user;
         $post->slug = Str::slug($title);
         $post->save();
         $post->categories()->sync($category_id);
         foreach ($languages as $language) {
             $post_detail = new PostDetail();
-            $post_detail->title = $tr->setSource('en')->setTarget($language)->translate($title);
-            $post_detail->content = $tr->setSource('en')->setTarget($language)->translate($content);
+            $post_detail->title = languages($language, $title);
+            $post_detail->content = languages($language, $content);
             $post_detail->lang = $language;
             $post_detail->post_id = $post->id;
             $post_detail->save();
@@ -108,34 +107,37 @@ class PostController extends BaseController
         ]);
     }
 
+    public function show(Post $post, Request $request)
+    {
+        $language = $request->language;
+        $category = $post->categories()->where('status', '=', 'active')->get();
+        $post_detail = $post->post_detail()->where('lang', '=', $language)->get();
+        $data = [
+            'category' => $category,
+            'post' => $post,
+            'post_detail' => $post_detail
+        ];
+        return $this->handleRespondSuccess('data', $data);
+    }
+
     public function update(PostRequest $request, Post $post)
     {
         if (!Auth::user()->hasPermission('update')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $tr = new GoogleTranslate();
-        $languages = ['ko', 'zh-CN', 'zh-TW', 'th', 'ja', 'vi'];
         $title = $request->title;
         $status = $request->status;
         $content = $request->contents;
         $type = $request->type;
         $category_id = $request->category;
-        $post->title = $title;
-        $post->status = $status;
-        $post->content = $content;
-        $post->type = $type;
+        $post->title = languages('en', $title);
+        $post->status = languages('en', $status);
+        $post->content = languages('en', $content);
+        $post->type = languages('en', $type);
         $post->slug = Str::slug($title);
         $post->save();
         $post->categories()->sync($category_id);
         $post->post_detail()->delete();
-        foreach ($languages as $language) {
-            $post_detail = new PostDetail();
-            $post_detail->title = $tr->setSource('en')->setTarget('ka')->translate($title);
-            $post_detail->content = $tr->setSource('en')->setTarget('ka')->translate($content);
-            $post_detail->content = $language;
-            $post_detail->post_id = $post->id;
-            $post_detail->save();
-        }
         if ($request->has('key') && $request->has('value')) {
             $post_metas = $post->post_meta()->get();
             $key = $request->key;
@@ -169,6 +171,23 @@ class PostController extends BaseController
                 'post_meta' => $meta_data
             ]);
         }
+    }
+
+    public function update_postDetail(Request $request, Post $post)
+    {
+        if (!Auth::user()->hasPermission('update')) {
+            return $this->handleRespondError('you do not have access')->setStatusCode(403);
+        }
+        $language = $request->language;
+        $post_detail = $post->post_detail()->where('lang', $language)->first();
+        if ($post_detail !== null) {
+            $post_detail->title = $request->title;
+            $post_detail->content = $request->contents;
+            $post_detail->save();
+            return $this->handleRespondSuccess('update post_detail success', $post_detail);
+        }
+        return $this->handleRespondError('update post_detail false');
+
     }
 
     public function destroy(Request $request)

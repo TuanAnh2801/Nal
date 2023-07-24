@@ -8,9 +8,6 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\VerifyEmailController;
 use App\Http\Controllers\UserController;
 
-Route::post('/auth/login', [
-    AuthController::class, 'login'
-]);
 Route::group([
     'prefix' => 'user'
 ], function () {
@@ -49,6 +46,7 @@ Route::group([
     Route::post('/create', [PostController::class, 'store'])->middleware('can:create,App\Models\Post');
     Route::post('/update/{post}', [PostController::class, 'update'])->middleware('can:update,post');
     Route::get('/{post}', [PostController::class, 'show']);
+    Route::post('/updateDetail/{post}', [PostController::class, 'update_postDetail'])->middleware('can:update,post');
     Route::post('/delete', [PostController::class, 'destroy'])->middleware('can:delete,App\Models\Post');
 });
 // Phân quyền

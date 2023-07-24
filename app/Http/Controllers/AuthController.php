@@ -40,7 +40,7 @@ class AuthController extends BaseController
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
         $user->save();
-//        $user->roles()->sync($role_id);
+        $user->roles()->sync($role_id);
         event(new Registered($user));
         return $this->handleRespondSuccess('register success', $user);
     }
