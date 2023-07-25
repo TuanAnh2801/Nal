@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Http\Requests\CategoryRequest;
-use App\Models\Post;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -57,9 +56,7 @@ class CategoryController extends BaseController
         $user = Auth::id();
         $image = $request->image;
         if ($image) {
-            $image_name = Str::random(10);
-            $image_path = $image->storeAs('public/upload/' . date('Y/m/d'), $image_name);
-            $image_url = asset(Storage::url($image_path));
+            $image_url = uploadImage($image,'categories');
             $category->url = $image_url;
         }
         $category->name = $request->name;
@@ -83,11 +80,9 @@ class CategoryController extends BaseController
             $category->slug = Str::slug($request->name);
             return $this->handleRespondSuccess('update success', $category);
         }
-        $image_name = Str::random(10);
         $path = 'public' . Str::after($category->url_image, 'storage');
         Storage::delete($path);
-        $image_path = $image->storeAs('public/upload/' . date('Y/m/d'), $image_name);
-        $image_url = asset(Storage::url($image_path));
+        $image_url = uploadImage($image,'categories');
         $category->name = $request->name;
         $category->description = $request->description;
         $category->type = $request->type;

@@ -7,7 +7,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\VerifyEmailController;
 use App\Http\Controllers\UserController;
-
+use App\Models\Post;
 Route::group([
     'prefix' => 'user'
 ], function () {
@@ -41,9 +41,9 @@ Route::group([
     'middleware' => 'jwt.auth',
     'prefix' => 'post'
 ], function () {
-    Route::get('/', [PostController::class, 'index']);
+    Route::get('/', [PostController::class, 'index'])->middleware('can:show,App\Models\Post');
     Route::post('/restore', [PostController::class, 'restore'])->middleware('can:restore,App\Models\Post');
-    Route::post('/create', [PostController::class, 'store'])->middleware('can:create,App\Models\Post');
+    Route::post('/create', [PostController::class, 'store'])->can('create', Post::class);;
     Route::post('/update/{post}', [PostController::class, 'update'])->middleware('can:update,post');
     Route::get('/{post}', [PostController::class, 'show']);
     Route::post('/updateDetail/{post}', [PostController::class, 'update_postDetail'])->middleware('can:update,post');
@@ -61,7 +61,7 @@ Route::group([
     Route::post('/update', [UserController::class, 'update']);
     Route::post('/update/{user}', [UserController::class, 'updateAll'])->middleware('can:updateAll,user');
     Route::post('/delete', [UserController::class, 'destroy'])->middleware('can:delete,App\Models\User');
-    Route::post('/setMood', [UserController::class, 'setMood']);
+    Route::post('/setMood', [UserController::class, 'setMood']);    
     Route::post('/updateMood/{user_meta}', [UserController::class, 'updateMood']);
     Route::post('/getMood', [UserController::class, 'getMood']);
 

@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Traits\HasPermission;
-use App\Helpers\Language;
 
 class PostController extends BaseController
 {
@@ -59,7 +58,6 @@ class PostController extends BaseController
         if (!Auth::user()->hasPermission('create')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-
         $user = Auth::id();
         $languages = config('app.languages');
         $title = $request->title;
@@ -91,9 +89,7 @@ class PostController extends BaseController
                 $post_meta->post_id = $post->id;
                 $post_meta->key = $meta_key[$i];
                 if (is_file($value[$i])) {
-                    $image_name = Str::random(10);
-                    $image_path = $value[$i]->storeAs('public/postImage/' . date('Y/m/d'), $image_name);
-                    $post_meta->value = asset(Storage::url($image_path));
+                    $post_meta->value = uploadImage($value[$i],'postMeta');
                 } else {
                     $post_meta->value = $value[$i];
                 }
@@ -155,9 +151,7 @@ class PostController extends BaseController
                 $post_meta->post_id = $post->id;
                 $post_meta->key = $metaKey[$i];
                 if (is_file($value[$i])) {
-                    $imageName = Str::random(10);
-                    $imagePath = $value[$i]->storeAs('public/postImage/' . date('Y/m/d'), $imageName);
-                    $post_meta->value = asset(Storage::url($imagePath));
+                    $post_meta->value = uploadImage($value[$i],'postMeta');
                 } else {
                     $post_meta->value = $value[$i];
                 }

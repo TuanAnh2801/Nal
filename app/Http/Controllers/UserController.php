@@ -77,9 +77,8 @@ class UserController extends BaseController
         $user = new User();
         $image = $request->image;
         if ($image) {
-            $image_name = Str::random(10);
-            $image_path = $image->storeAs('public/userImage/' . date('Y/m/d'), $image_name);
-            $image_url = asset(Storage::url($image_path));
+
+            $image_url = uploadImage($image,'users');
             $user->avatar = $image_url;
         }
         $user->name = $request->name;
@@ -108,11 +107,9 @@ class UserController extends BaseController
             $user->update($request->all());
             return $this->handleRespondSuccess('update success', $user);
         }
-        $image_name = Str::random(10);
         $path = 'public' . Str::after($user->avatar, 'storage');
         Storage::delete($path);
-        $image_path = $image->storeAs('public/userImage/' . date('Y/m/d'), $image_name);
-        $image_url = asset(Storage::url($image_path));
+        $image_url = uploadImage($image,'users');
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
@@ -136,11 +133,9 @@ class UserController extends BaseController
             return $this->handleRespondSuccess('update success', $user);
         }
         $image = $request->image;
-        $image_name = Str::random(10);
         $path = 'public' . Str::after($user->avatar, 'storage');
         Storage::delete($path);
-        $image_path = $image->storeAs('public/userImage/' . date('Y/m/d'), $image_name);
-        $image_url = asset(Storage::url($image_path));
+        $image_url = uploadImage($image,'users');
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);

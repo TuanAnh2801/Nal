@@ -4,7 +4,6 @@ namespace App\Traits;
 
 use App\Models\Role;
 
-
 trait HasPermission
 {
     public function hasRole($role)
@@ -19,7 +18,7 @@ trait HasPermission
                 return true;
             }
         }
-        return response()->json('you do not have access');
+        return false;
     }
 
     public function roles()

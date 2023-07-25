@@ -33,7 +33,7 @@ class UserFactory extends Factory
     public function configure()
     {
         return $this->afterCreating(function (User $user) {
-            $roleIds = Role::inRandomOrder()->pluck('id');
+            $roleIds = Role::inRandomOrder()->pluck('id')->first();
             $user->roles()->sync($roleIds);
         });
 

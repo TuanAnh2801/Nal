@@ -17,13 +17,16 @@ return [
     'providers' => [
 
 
-
+        Intervention\Image\ImageServiceProvider::class,
         Tymon\JWTAuth\Providers\LaravelServiceProvider::class,
     ],
 
     'name' => env('APP_NAME', 'Laravel'),
     'paginate' => 20,
     'languages' => ['en','ko', 'zh-CN', 'zh-TW', 'th', 'ja', 'vi'],
+    'size_image'=> [
+        '720x2000', '1280x2000', '480x2000', '330x2000', '200x2000', '100x2000', '300x300'
+    ],
     /*
     |--------------------------------------------------------------------------
     | Application Environment
@@ -191,6 +194,7 @@ return [
     'aliases' => Facade::defaultAliases()->merge([
         // 'Example' => App\Facades\Example::class,
     ])->toArray(),
+    'Image' => Intervention\Image\Facades\Image::class
 
 
 ];
