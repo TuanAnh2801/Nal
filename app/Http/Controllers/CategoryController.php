@@ -38,27 +38,14 @@ class CategoryController extends BaseController
         return $this->handleRespondSuccess($categories, 'Get all categories');
     }
 
-    public function show(Category $category)
-    {
-        $post = $category->post()->where('status', '=', 'active')->get();
-        $data = [
-          'category'=>$category,
-          'post'=> $post
-        ];
-        return $this->handleRespondSuccess('data', $data);
-    }
-
     public function store(CategoryRequest $request, Category $category)
     {
         if (!Auth::user()->hasPermission('create')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
         $user = Auth::id();
-        $image = $request->image;
-        if ($image) {
-            $image_url = uploadImage($image,'categories');
-            $category->url = $image_url;
-        }
+        $url = $request->url;
+        $category->url = $url;
         $category->name = $request->name;
         $category->status = $request->status;
         $category->description = $request->description;
@@ -69,25 +56,31 @@ class CategoryController extends BaseController
         return $this->handleRespondSuccess('create success', $category);
     }
 
+    public function show(Category $category)
+    {
+        $post = $category->post()->where('status', '=', 'active')->get();
+        $data = [
+            'category' => $category,
+            'post' => $post
+        ];
+        return $this->handleRespondSuccess('data', $data);
+    }
+
     public function update(CategoryRequest $request, Category $category)
     {
         if (!Auth::user()->hasPermission('update')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $image = $request->image;
-        if (!$request->hasFile('image')) {
-            $category->update($request->all());
-            $category->slug = Str::slug($request->name);
-            return $this->handleRespondSuccess('update success', $category);
+        $url = $request->url;
+        if ($url && $category->url) {
+            $path = 'public' . Str::after($category->url, 'storage');
+            Storage::delete($path);
         }
-        $path = 'public' . Str::after($category->url_image, 'storage');
-        Storage::delete($path);
-        $image_url = uploadImage($image,'categories');
         $category->name = $request->name;
         $category->description = $request->description;
         $category->type = $request->type;
         $category->slug = Str::slug($request->name);
-        $category->image = $image_url;
+        $category->image = $url;
         $category->save();
         return $this->handleRespondSuccess('update success', $category);
     }
@@ -118,22 +111,23 @@ class CategoryController extends BaseController
         }
         return $this->handleRespondError('delete false');
     }
+
     public function restore(Request $request)
     {
         if (!Auth::user()->hasPermission('update')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-            $request->validate([
-                'ids' => 'required',
-            ]);
-            $category_ids = $request->input('ids');
-            Category::onlyTrashed()->whereIn('id', $category_ids)->restore();
-            foreach ($category_ids as $category_id) {
-                $category = Category::find($category_id);
-                $category->status = 'active';
-                $category->save();
-            }
-            return $this->handleRespondSuccess('restore success', true);
+        $request->validate([
+            'ids' => 'required',
+        ]);
+        $category_ids = $request->input('ids');
+        Category::onlyTrashed()->whereIn('id', $category_ids)->restore();
+        foreach ($category_ids as $category_id) {
+            $category = Category::find($category_id);
+            $category->status = 'active';
+            $category->save();
+        }
+        return $this->handleRespondSuccess('restore success', true);
     }
 
 }

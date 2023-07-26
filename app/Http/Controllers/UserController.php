@@ -22,21 +22,15 @@ class UserController extends BaseController
         if (!Auth::user()->hasPermission('read')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $status = $request->input('status');
-        $layout_status = ['active', 'deactivate'];
         $sort = $request->input('sort');
         $sort_types = ['desc', 'asc'];
         $sort_option = ['title', 'created_at', 'updated_at'];
         $sort_by = $request->input('sort_by');
-        $status = in_array($status, $layout_status) ? $status : 'active';
         $sort = in_array($sort, $sort_types) ? $sort : 'desc';
         $sort_by = in_array($sort_by, $sort_option) ? $sort_by : 'created_at';
         $search = $request->input('query');
         $limit = request()->input('limit') ?? config('app.paginate');
         $query = User::select('*');
-        if ($status) {
-            $query = $query->where('status', $status);
-        }
         if ($search) {
             $query = $query->where('title', 'LIKE', '%' . $search . '%');
         }
@@ -75,12 +69,8 @@ class UserController extends BaseController
         ]);
         $role_id = $request->roles;
         $user = new User();
-        $image = $request->image;
-        if ($image) {
-
-            $image_url = uploadImage($image,'users');
-            $user->avatar = $image_url;
-        }
+        $url = $request->url;
+        $user->avatar = $url;
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
@@ -102,23 +92,18 @@ class UserController extends BaseController
             'password' => 'required|string',
             'roles' => 'required|array'
         ]);
-        $image = $request->image;
-        if (!$request->hasFile('image')) {
-            $user->update($request->all());
-            return $this->handleRespondSuccess('update success', $user);
+        $url = $request->url;
+        if ($url && $user->url) {
+            $path = 'public' . Str::after($user->url, 'storage');
+            Storage::delete($path);
         }
-        $path = 'public' . Str::after($user->avatar, 'storage');
-        Storage::delete($path);
-        $image_url = uploadImage($image,'users');
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
-        $user->avatar = $image_url;
+        $user->avatar = $url;
         $user->save();
         return $this->handleRespondSuccess('update success', $user);
     }
-
-
     public function update(Request $request)
     {
         $request->validate([
@@ -128,18 +113,15 @@ class UserController extends BaseController
             'roles' => 'required|array'
         ]);
         $user = Auth::user();
-        if (!$request->hasFile('image')) {
-            $user->update($request->all());
-            return $this->handleRespondSuccess('update success', $user);
+        $url = $request->url;
+        if ($url && $user->url) {
+            $path = 'public' . Str::after($user->url, 'storage');
+            Storage::delete($path);
         }
-        $image = $request->image;
-        $path = 'public' . Str::after($user->avatar, 'storage');
-        Storage::delete($path);
-        $image_url = uploadImage($image,'users');
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
-        $user->avatar = $image_url;
+        $user->avatar = $url;
         $user->save();
         return $this->handleRespondSuccess('update success', $user);
     }

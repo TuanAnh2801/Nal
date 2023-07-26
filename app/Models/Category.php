@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Category extends Model
 {
@@ -15,5 +15,13 @@ class Category extends Model
     public function post()
     {
         return $this->belongsToMany(Post::class);
+    }
+    public function article()
+    {
+        return $this->belongsToMany(Article::class);
+    }
+    public function image(): MorphMany
+    {
+        return $this->morphMany(Upload::class, 'id_item');
     }
 }

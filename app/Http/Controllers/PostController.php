@@ -6,6 +6,7 @@ use App\Models\Post;
 use App\Http\Requests\PostRequest;
 use App\Models\PostDetail;
 use App\Models\PostMeta;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -22,12 +23,12 @@ class PostController extends BaseController
         $languages = config('app.languages');
         $language = in_array($language, $languages) ? $language : '';
         $status = $request->input('status');
-        $layout_status = ['active', 'deactivate'];
+        $layout_status = ['draft', 'published', 'archived'];
         $sort = $request->input('sort');
         $sort_types = ['desc', 'asc'];
         $sort_option = ['title', 'created_at', 'updated_at'];
         $sort_by = $request->input('sort_by');
-        $status = in_array($status, $layout_status) ? $status : 'active';
+        $status = in_array($status, $layout_status) ? $status : 'draft';
         $sort = in_array($sort, $sort_types) ? $sort : 'desc';
         $sort_by = in_array($sort_by, $sort_option) ? $sort_by : 'created_at';
         $search = $request->input('query');
@@ -46,8 +47,8 @@ class PostController extends BaseController
             $query = $query->with(['post_detail' => function ($q) use ($language) {
                 $q->where('lang', $language);
             }]);
-        }
 
+        }
         $posts = $query->orderBy($sort_by, $sort)->paginate($limit);
 
         return $this->handleRespondSuccess('Get posts successfully', $posts);
@@ -88,11 +89,7 @@ class PostController extends BaseController
                 $post_meta = new PostMeta();
                 $post_meta->post_id = $post->id;
                 $post_meta->key = $meta_key[$i];
-                if (is_file($value[$i])) {
-                    $post_meta->value = uploadImage($value[$i],'postMeta');
-                } else {
-                    $post_meta->value = $value[$i];
-                }
+                $post_meta->value = $value[$i];
                 $post_meta->save();
             }
         }
@@ -146,19 +143,13 @@ class PostController extends BaseController
                 }
                 $post_meta->delete();
             }
-            foreach ($key as $i => $metaKey) {
+            foreach ($key as $i => $meta_key) {
                 $post_meta = new PostMeta();
                 $post_meta->post_id = $post->id;
-                $post_meta->key = $metaKey[$i];
-                if (is_file($value[$i])) {
-                    $post_meta->value = uploadImage($value[$i],'postMeta');
-                } else {
-                    $post_meta->value = $value[$i];
-                }
+                $post_meta->key = $meta_key[$i];
+                $post_meta->value = $value[$i];
                 $post_meta->save();
-
             }
-
             $meta_data = $post->post_meta()->get();
             return $this->handleRespondSuccess('update success', [
                 'post' => $post,

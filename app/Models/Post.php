@@ -6,6 +6,7 @@ use App\Models\UserMeta;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 class Post extends Model
 {
     use HasFactory;
@@ -22,5 +23,9 @@ class Post extends Model
     }
     public function post_detail(){
         return $this->hasMany(PostDetail::class);
+    }
+    public function image()
+    {
+        return $this->morphMany(Upload::class, 'id_item');
     }
 }
