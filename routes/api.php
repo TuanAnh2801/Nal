@@ -31,7 +31,7 @@ Route::group([
     'prefix' => 'upload'
 ], function () {
     Route::post('/create', [UploadController::class, 'create']);
-    Route::post('/delete', [PostController::class, 'destroy']);
+    Route::post('/upload', [UploadController::class, 'upload']);
 });
 //Category
 Route::group([
