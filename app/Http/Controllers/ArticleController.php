@@ -2,19 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Post;
-use App\Http\Requests\PostRequest;
-use App\Models\PostDetail;
-use App\Models\PostMeta;
+use App\Http\Controllers\Controller;
+use App\Models\Article;
+use App\Models\ArticleDetail;
 use App\Models\Upload;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
 use App\Traits\HasPermission;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
-class PostController extends BaseController
+class ArticleController extends Controller
 {
     use HasPermission;
 
@@ -34,7 +33,7 @@ class PostController extends BaseController
         $sort_by = in_array($sort_by, $sort_option) ? $sort_by : 'created_at';
         $search = $request->input('query');
         $limit = request()->input('limit') ?? config('app.paginate');
-        $query = Post::select('*');
+        $query = Article::select('*');
         if ($status) {
             $query = $query->where('status', $status);
         }
@@ -50,35 +49,33 @@ class PostController extends BaseController
             }]);
 
         }
-        $posts = $query->orderBy($sort_by, $sort)->paginate($limit);
+        $articles = $query->orderBy($sort_by, $sort)->paginate($limit);
 
-        return $this->handleRespondSuccess('Get posts successfully', $posts);
+        return $this->handleRespondSuccess('Get posts successfully', $articles);
     }
 
-    public function store(PostRequest $request, Post $post)
+    public function store(Request $request, Article $article)
     {
         if (!Auth::user()->hasPermission('create')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $user = Auth::id();
         $id_uploads = $request->uploadId;
+        $user = Auth::id();
         $languages = config('app.languages');
         $title = $request->title;
         $status = $request->status;
         $content = $request->contents;
-        $type = $request->type;
         $category_id = $request->category;
-        $post->title = $title;
-        $post->status = $status;
-        $post->content = $content;
-        $post->type = $type;
-        $post->user_id = $user;
-        $post->slug = Str::slug($title);
-        $post->save();
+        $article->title = $title;
+        $article->status = $status;
+        $article->content = $content;
+        $article->user_id = $user;
+        $article->slug = Str::slug($title);
+        $article->save();
         if ($id_uploads) {
             foreach ($id_uploads as $id_upload) {
                 $upload = Upload::find($id_upload);
-                $upload->post_id = $post->id;
+                $upload->article_id = $article->id;
                 $upload->status = 'published';
                 $upload->save();
             }
@@ -90,74 +87,64 @@ class PostController extends BaseController
             Storage::delete($path);
         }
         Upload::where('status', 'pending')->where('author', Auth::id())->delete();
-        $post->categories()->sync($category_id);
+        $article->categories()->sync($category_id);
         foreach ($languages as $language) {
-            $post_detail = new PostDetail();
-            $post_detail->title = languages($language, $title);
-            $post_detail->content = languages($language, $content);
-            $post_detail->lang = $language;
-            $post_detail->post_id = $post->id;
-            $post_detail->save();
+            $article_detail = new ArticleDetail();
+            $article_detail->title = languages($language, $title);
+            $article_detail->content = languages($language, $content);
+            $article_detail->lang = $language;
+            $article_detail->article_id = $article->id;
+            $article_detail->save();
         }
-        if ($request->has('key') && $request->has('value')) {
-            $key = $request->key;
-            $value = $request->value;
-            foreach ($key as $i => $meta_key) {
-                $post_meta = new PostMeta();
-                $post_meta->post_id = $post->id;
-                $post_meta->key = $meta_key[$i];
-                $post_meta->value = $value[$i];
-                $post_meta->save();
-            }
-        }
-        $meta_data = $post->post_meta()->get();
+        $detail_data = $article->article_detail()->get();
         return $this->handleRespondSuccess('create success', [
-            'post' => $post,
-            'post_meta' => $meta_data
+            'article' => $article,
+            'article_data' => $detail_data
         ]);
     }
 
-    public function show(Post $post, Request $request)
+
+    public function show(Article $article, Request $request)
     {
         $language = $request->language;
-        $category = $post->categories()->where('status', '=', 'active')->get();
-        $post_detail = $post->post_detail()->where('lang', '=', $language)->get();
+        $category = $article->categories()->where('status', '=', 'active')->get();
+        $article_detail = $article->article_detail()->where('lang', '=', $language)->get();
         $data = [
             'category' => $category,
-            'post' => $post,
-            'post_detail' => $post_detail
+            'article' => $article,
+            'article_detail' => $article_detail
         ];
         return $this->handleRespondSuccess('data', $data);
     }
 
-    public function update(PostRequest $request, Post $post)
+    public function update(Request $request, Article $article)
     {
         if (!Auth::user()->hasPermission('update')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
         $id_uploads = $request->uploadId;
-        if ($id_uploads){
-           $uploads = $post->image();
-           foreach ($uploads as $upload){
-               $upload->delete();
-           }
+        if ($id_uploads) {
+            $uploads = $article->image();
+            foreach ($uploads as $upload) {
+                $upload->delete();
+            }
         }
+        $user = Auth::id();
         $languages = config('app.languages');
         $title = $request->title;
         $status = $request->status;
         $content = $request->contents;
-        $type = $request->type;
         $category_id = $request->category;
-        $post->title = $title;
-        $post->status = $status;
-        $post->content = $content;
-        $post->type = $type;
-        $post->slug = Str::slug($title);
-        $post->save();
+        $article->title = $title;
+        $article->status = $status;
+        $article->content = $content;
+        $article->user_id = $user;
+        $article->slug = Str::slug($title);
+        $article->save();
         if ($id_uploads) {
             foreach ($id_uploads as $id_upload) {
                 $upload = Upload::find($id_upload);
-                $upload->post_id = $post->id;
+                $upload->article_id = $article->id;
                 $upload->status = 'published';
                 $upload->save();
             }
@@ -169,54 +156,42 @@ class PostController extends BaseController
             Storage::delete($path);
         }
         Upload::where('status', 'pending')->where('author', Auth::id())->delete();
-        $post->categories()->sync($category_id);
-        $post->post_detail()->delete();
+        $article->categories()->sync($category_id);
+        $article->article_detail()->delete();
         foreach ($languages as $language) {
-            $post_detail = new PostDetail();
-            $post_detail->title = languages($language, $title);
-            $post_detail->content = languages($language, $content);
-            $post_detail->lang = $language;
-            $post_detail->post_id = $post->id;
-            $post_detail->save();
+            $article_detail = new ArticleDetail();
+            $article_detail->title = languages($language, $title);
+            $article_detail->content = languages($language, $content);
+            $article_detail->lang = $language;
+            $article_detail->article_id = $article->id;
+            $article_detail->save();
         }
-        if ($request->has('key') && $request->has('value')) {
-            $post_metas = $post->post_meta()->get();
-            $key = $request->key;
-            $value = $request->value;
-            foreach ($post_metas as $post_meta) {
-                $post_meta->delete();
-            }
-            foreach ($key as $i => $meta_key) {
-                $post_meta = new PostMeta();
-                $post_meta->post_id = $post->id;
-                $post_meta->key = $meta_key[$i];
-                $post_meta->value = $value[$i];
-                $post_meta->save();
-            }
-            $meta_data = $post->post_meta()->get();
-            return $this->handleRespondSuccess('update success', [
-                'post' => $post,
-                'post_meta' => $meta_data
-            ]);
-        }
+
+        $detail_data = $article->article_detail()->get();
+        return $this->handleRespondSuccess('update success', [
+            'article' => $article,
+            'article_data' => $detail_data
+        ]);
+
     }
 
-    public function update_postDetail(Request $request, Post $post)
+    public function update_Detail(Request $request, Article $article)
     {
         if (!Auth::user()->hasPermission('update')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
         $language = $request->language;
-        $post_detail = $post->post_detail()->where('lang', $language)->first();
-        if ($post_detail !== null) {
-            $post_detail->title = $request->title;
-            $post_detail->content = $request->contents;
-            $post_detail->save();
-            return $this->handleRespondSuccess('update post_detail success', $post_detail);
+        $article_detail = $article->article_detail()->where('lang', $language)->first();
+        if ($article_detail !== null) {
+            $article_detail->title = $request->title;
+            $article_detail->content = $request->contents;
+            $article_detail->save();
+            return $this->handleRespondSuccess('update article_detail success', $article_detail);
         }
-        return $this->handleRespondError('update post_detail false');
+        return $this->handleRespondError('update article_detail false');
 
     }
+
 
     public function destroy(Request $request)
     {
@@ -227,23 +202,23 @@ class PostController extends BaseController
             'ids' => 'required',
             'option' => 'required|in:delete,forceDelete'
         ]);
-        $post_delete = $request->input('ids');
+        $article_delete = $request->input('ids');
         $option = $request->option;
-        $posts = Post::withTrashed()->whereIn('id', $post_delete)->get();
-        if ($posts) {
-            foreach ($posts as $post) {
-                $post->status = 'deactivate';
-                $post->save();
+        $articles = Article::withTrashed()->whereIn('id', $article_delete)->get();
+        if ($articles) {
+            foreach ($articles as $article) {
+                $article->status = 'deactivate';
+                $article->save();
                 if ($option === 'delete') {
-                    $post->delete();
+                    $article->delete();
                 } elseif ($option === 'forceDelete') {
-                    $uploads = $post->image();
+                    $uploads = $article->image();
                     foreach ($uploads as $upload) {
                         $thumbnail = $upload->thumbnail;
                         $path = 'public' . Str::after($thumbnail, 'storage');
                         Storage::delete($path);
                     }
-                    $post->forceDelete();
+                    $article->forceDelete();
                 }
 
             }
@@ -260,14 +235,14 @@ class PostController extends BaseController
         $request->validate([
             'ids' => 'required',
         ]);
-        $post_ids = $request->input('ids');
-        Post::onlyTrashed()->whereIn('id', $post_ids)->restore();
-        foreach ($post_ids as $post_id) {
-            $post = Post::find($post_id);
+        $article_ids = $request->input('ids');
+        Article::onlyTrashed()->whereIn('id', $article_ids)->restore();
+        foreach ($article_ids as $article_id) {
+            $post = Article::find($article_id);
             $post->status = 'active';
             $post->save();
         }
         return $this->handleRespondSuccess('restore success', true);
     }
-}
 
+}

@@ -26,6 +26,6 @@ class Post extends Model
     }
     public function image()
     {
-        return $this->morphMany(Upload::class, 'id_item');
+        return $this->hasMany(Upload::class);
     }
 }

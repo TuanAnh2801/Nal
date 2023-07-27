@@ -8,7 +8,9 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\VerifyEmailController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UploadController;
+use App\Http\Controllers\ArticleController;
 use App\Models\Post;
+use App\Models\Article;
 Route::group([
     'prefix' => 'user'
 ], function () {
@@ -57,6 +59,19 @@ Route::group([
     Route::get('/{post}', [PostController::class, 'show']);
     Route::post('/updateDetail/{post}', [PostController::class, 'update_postDetail'])->middleware('can:update,post');
     Route::post('/delete', [PostController::class, 'destroy'])->middleware('can:delete,App\Models\Post');
+});
+// article
+Route::group([
+    'middleware' => 'jwt.auth',
+    'prefix' => 'article'
+], function () {
+    Route::get('/', [ArticleController::class, 'index'])->middleware('can:show,App\Models\Article');
+    Route::post('/restore', [ArticleController::class, 'restore'])->middleware('can:restore,App\Models\Article');
+    Route::post('/create', [ArticleController::class, 'store'])->can('create', Article::class);;
+    Route::post('/update/{article}', [ArticleController::class, 'update'])->middleware('can:update,article');
+    Route::get('/{post}', [ArticleController::class, 'show']);
+    Route::post('/updateDetail/{article}', [ArticleController::class, 'update_Detail'])->middleware('can:update,article');
+    Route::post('/delete', [ArticleController::class, 'destroy'])->middleware('can:delete,App\Models\Article');
 });
 // Phân quyền
 Route::group([

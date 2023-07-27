@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Article extends Model
 {
     use HasFactory;
-
+    use SoftDeletes;
     protected $fillable = ['slug', 'title', 'content', 'thumbnail', 'status', 'category_id', 'author '];
 
     public function categories()
@@ -17,5 +18,9 @@ class Article extends Model
     }
     public function article_detail(){
         return $this->hasMany(ArticleDetail::class);
+    }
+    public function image()
+    {
+        return $this->hasMany(Upload::class);
     }
 }

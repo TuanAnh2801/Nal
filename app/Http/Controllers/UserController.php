@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Models\Upload;
 use App\Models\User;
 use App\Models\UserMeta;
 use Illuminate\Http\Request;
@@ -67,6 +68,7 @@ class UserController extends BaseController
             'password' => 'required|string',
             'roles' => 'required|array'
         ]);
+        $id_uploads = $request->uploadId;
         $role_id = $request->roles;
         $user = new User();
         $url = $request->url;
@@ -75,6 +77,19 @@ class UserController extends BaseController
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
         $user->save();
+        if ($id_uploads) {
+            $upload = Upload::find($id_uploads);
+            $upload->user_id = $user->id;
+            $upload->status = 'published';
+            $upload->save();
+        }
+        $upload_deletes = Upload::where('status', 'pending')->where('author', Auth::id())->get();
+        foreach ($upload_deletes as $upload_delete) {
+            $thumbnail = $upload_delete->thumbnail;
+            $path = 'public' . Str::after($thumbnail, 'storage');
+            Storage::delete($path);
+        }
+        Upload::where('status', 'pending')->where('author', Auth::id())->delete();
         $user->roles()->sync($role_id);
         event(new Registered($user));
         return $this->handleRespondSuccess('register success', $user);
@@ -92,18 +107,33 @@ class UserController extends BaseController
             'password' => 'required|string',
             'roles' => 'required|array'
         ]);
-        $url = $request->url;
-        if ($url && $user->url) {
-            $path = 'public' . Str::after($user->url, 'storage');
-            Storage::delete($path);
+        $id_uploads = $request->uploadId;
+        if ($id_uploads){
+            $uploads = $user->image();
+            foreach ($uploads as $upload){
+                $upload->delete();
+            }
         }
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
-        $user->avatar = $url;
         $user->save();
+        if ($id_uploads) {
+            $upload = Upload::find($id_uploads);
+            $upload->user_id = $user->id;
+            $upload->status = 'published';
+            $upload->save();
+        }
+        $upload_deletes = Upload::where('status', 'pending')->where('author', Auth::id())->get();
+        foreach ($upload_deletes as $upload_delete) {
+            $thumbnail = $upload_delete->thumbnail;
+            $path = 'public' . Str::after($thumbnail, 'storage');
+            Storage::delete($path);
+        }
+        Upload::where('status', 'pending')->where('author', Auth::id())->delete();
         return $this->handleRespondSuccess('update success', $user);
     }
+
     public function update(Request $request)
     {
         $request->validate([
@@ -112,17 +142,25 @@ class UserController extends BaseController
             'password' => 'required|string',
             'roles' => 'required|array'
         ]);
+        $id_uploads = $request->uploadId;
         $user = Auth::user();
-        $url = $request->url;
-        if ($url && $user->url) {
-            $path = 'public' . Str::after($user->url, 'storage');
-            Storage::delete($path);
+        if ($id_uploads){
+            $uploads = $user->image();
+            foreach ($uploads as $upload){
+                $upload->delete();
+            }
         }
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
-        $user->avatar = $url;
         $user->save();
+        if ($id_uploads) {
+            $upload = Upload::find($id_uploads);
+            $upload->user_id = $user->id;
+            $upload->status = 'published';
+            $upload->save();
+        }
+        Upload::where('status', 'pending')->where('author', Auth::id())->delete();
         return $this->handleRespondSuccess('update success', $user);
     }
 
@@ -146,6 +184,10 @@ class UserController extends BaseController
                     $user->save();
                     $user->delete();
                 } elseif ($option === 'forceDelete') {
+                    $upload = $user->image();
+                    $thumbnail = $upload->thumbnail;
+                    $path = 'public' . Str::after($thumbnail, 'storage');
+                    Storage::delete($path);
                     $user->forceDelete();
                 }
             }

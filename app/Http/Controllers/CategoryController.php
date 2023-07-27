@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Http\Requests\CategoryRequest;
+use App\Models\Upload;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -44,8 +45,7 @@ class CategoryController extends BaseController
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
         $user = Auth::id();
-        $url = $request->url;
-        $category->url = $url;
+        $id_uploads = $request->uploadId;
         $category->name = $request->name;
         $category->status = $request->status;
         $category->description = $request->description;
@@ -53,6 +53,21 @@ class CategoryController extends BaseController
         $category->author = $user;
         $category->slug = Str::slug($request->name);
         $category->save();
+        if ($id_uploads) {
+            foreach ($id_uploads as $id_upload) {
+                $upload = Upload::find($id_upload);
+                $upload->category_id = $category->id;
+                $upload->status = 'published';
+                $upload->save();
+            }
+        }
+        $upload_deletes = Upload::where('status', 'pending')->where('author', Auth::id())->get();
+        foreach ($upload_deletes as $upload_delete) {
+            $thumbnail = $upload_delete->thumbnail;
+            $path = 'public' . Str::after($thumbnail, 'storage');
+            Storage::delete($path);
+        }
+        Upload::where('status', 'pending')->where('author', Auth::id())->delete();
         return $this->handleRespondSuccess('create success', $category);
     }
 
@@ -71,17 +86,31 @@ class CategoryController extends BaseController
         if (!Auth::user()->hasPermission('update')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $url = $request->url;
-        if ($url && $category->url) {
-            $path = 'public' . Str::after($category->url, 'storage');
-            Storage::delete($path);
+        $id_uploads = $request->uploadId;
+        if ($id_uploads){
+            $uploads = $category->image();
+            foreach ($uploads as $upload){
+                $upload->delete();
+            }
         }
         $category->name = $request->name;
         $category->description = $request->description;
         $category->type = $request->type;
         $category->slug = Str::slug($request->name);
-        $category->image = $url;
         $category->save();
+        if ($id_uploads) {
+            $upload = Upload::find($id_uploads);
+            $upload->category_id = $category->id;
+            $upload->status = 'published';
+            $upload->save();
+        }
+        $upload_deletes = Upload::where('status', 'pending')->where('author', Auth::id())->get();
+        foreach ($upload_deletes as $upload_delete) {
+            $thumbnail = $upload_delete->thumbnail;
+            $path = 'public' . Str::after($thumbnail, 'storage');
+            Storage::delete($path);
+        }
+        Upload::where('status', 'pending')->where('author', Auth::id())->delete();
         return $this->handleRespondSuccess('update success', $category);
     }
 
@@ -104,6 +133,12 @@ class CategoryController extends BaseController
                     $category->save();
                     $category->delete();
                 } elseif ($option === 'forceDelete') {
+                    $uploads = $category->image();
+                    foreach ($uploads as $upload) {
+                        $thumbnail = $upload->thumbnail;
+                        $path = 'public' . Str::after($thumbnail, 'storage');
+                        Storage::delete($path);
+                    }
                     $category->forceDelete();
                 }
             }
