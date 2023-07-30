@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
-
+use App\Http\Requests\ArticleRequest;
 class ArticleController extends BaseController
 {
     use HasPermission;
@@ -52,7 +52,7 @@ class ArticleController extends BaseController
         return $this->handleRespondSuccess('Get posts successfully', $articles);
     }
 
-    public function store(Request $request, Article $article)
+    public function store(ArticleRequest $request, Article $article)
     {
         if (!Auth::user()->hasPermission('create')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
@@ -120,7 +120,7 @@ class ArticleController extends BaseController
         return $this->handleRespondSuccess('data', $data);
     }
 
-    public function update(Request $request, Article $article)
+    public function update(ArticleRequest $request, Article $article)
     {
         if (!Auth::user()->hasPermission('update')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);

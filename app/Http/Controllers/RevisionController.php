@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
-
+use App\Http\Requests\RevisionRequest;
 class RevisionController extends BaseController
 {
     use HasPermission;
@@ -45,7 +45,7 @@ class RevisionController extends BaseController
         return $this->handleRespondSuccess('create success', $revision);
     }
 
-    public function update(Request $request, Revision $revision)
+    public function update(RevisionRequest $request, Revision $revision)
     {
         if (!Auth::user()->hasPermission('create')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
