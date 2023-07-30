@@ -9,7 +9,7 @@ class ArticleDetail extends Model
 {
     use HasFactory;
     protected $fillable = ['article_id ','title','content','lang'];
-    public function post(){
+    public function article(){
         return $this->belongsTo(Article::class);
     }
 }

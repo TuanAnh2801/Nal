@@ -46,24 +46,25 @@ class CategoryController extends BaseController
         }
         $user = Auth::id();
         $id_uploads = $request->uploadId;
+        $id_upload = implode(',', $id_uploads);
         $category->name = $request->name;
         $category->status = $request->status;
         $category->description = $request->description;
         $category->type = $request->type;
         $category->author = $user;
+        $category->upload_id = $id_upload;
         $category->slug = Str::slug($request->name);
         $category->save();
         if ($id_uploads) {
             foreach ($id_uploads as $id_upload) {
                 $upload = Upload::find($id_upload);
-                $upload->category_id = $category->id;
-                $upload->status = 'published';
+                $upload->status = 'active';
                 $upload->save();
             }
         }
         $upload_deletes = Upload::where('status', 'pending')->where('author', Auth::id())->get();
         foreach ($upload_deletes as $upload_delete) {
-            $thumbnail = $upload_delete->thumbnail;
+            $thumbnail = $upload_delete->url;
             $path = 'public' . Str::after($thumbnail, 'storage');
             Storage::delete($path);
         }
@@ -87,30 +88,36 @@ class CategoryController extends BaseController
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
         $id_uploads = $request->uploadId;
-        if ($id_uploads){
-            $uploads = $category->image();
-            foreach ($uploads as $upload){
-                $upload->delete();
+        if ($id_uploads) {
+            $id_uploadNew = implode(',', $id_uploads);
+            $upload_id = $category->upload_id;
+            $upload_id = explode(',', $upload_id);
+            $upload_deletes = Upload::whereIn('id', $upload_id)->get();
+            Upload::whereIn('id', $upload_id)->delete();
+            foreach ($upload_deletes as $upload_delete) {
+                $url = $upload_delete->url;
+                $path = 'public' . Str::after($url, 'storage');
+                Storage::delete($path);
             }
+            foreach ($id_uploads as $id_upload) {
+                $upload = Upload::find($id_upload);
+                $upload->status = 'active';
+                $upload->save();
+            }
+            $upload_useless = Upload::where('status', 'pending')->where('author', Auth::id())->get();
+            foreach ($upload_useless as $upload_useles) {
+                $thumbnail = $upload_useles->thumbnail;
+                $path = 'public' . Str::after($thumbnail, 'storage');
+                Storage::delete($path);
+            }
+            Upload::where('status', 'pending')->where('author', Auth::id())->delete();
+            $category->upload_id = $id_uploadNew;
         }
         $category->name = $request->name;
         $category->description = $request->description;
         $category->type = $request->type;
         $category->slug = Str::slug($request->name);
         $category->save();
-        if ($id_uploads) {
-            $upload = Upload::find($id_uploads);
-            $upload->category_id = $category->id;
-            $upload->status = 'published';
-            $upload->save();
-        }
-        $upload_deletes = Upload::where('status', 'pending')->where('author', Auth::id())->get();
-        foreach ($upload_deletes as $upload_delete) {
-            $thumbnail = $upload_delete->thumbnail;
-            $path = 'public' . Str::after($thumbnail, 'storage');
-            Storage::delete($path);
-        }
-        Upload::where('status', 'pending')->where('author', Auth::id())->delete();
         return $this->handleRespondSuccess('update success', $category);
     }
 

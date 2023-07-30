@@ -11,6 +11,8 @@ use App\Http\Controllers\UploadController;
 use App\Http\Controllers\ArticleController;
 use App\Models\Post;
 use App\Models\Article;
+use App\Models\Revision;
+use App\Http\Controllers\RevisionController;
 Route::group([
     'prefix' => 'user'
 ], function () {
@@ -69,9 +71,19 @@ Route::group([
     Route::post('/restore', [ArticleController::class, 'restore'])->middleware('can:restore,App\Models\Article');
     Route::post('/create', [ArticleController::class, 'store'])->can('create', Article::class);;
     Route::post('/update/{article}', [ArticleController::class, 'update'])->middleware('can:update,article');
-    Route::get('/{post}', [ArticleController::class, 'show']);
+    Route::get('/{article}', [ArticleController::class, 'show'])->middleware('can:update,article');
     Route::post('/updateDetail/{article}', [ArticleController::class, 'update_Detail'])->middleware('can:update,article');
     Route::post('/delete', [ArticleController::class, 'destroy'])->middleware('can:delete,App\Models\Article');
+});
+// revision
+Route::group([
+    'middleware' => 'jwt.auth',
+    'prefix' => 'revision'
+], function () {
+    Route::post('/create/{article}', [RevisionController::class, 'store'])->middleware('can:create,App\Models\Revision');
+    Route::post('/update/{revision}', [RevisionController::class, 'update'])->middleware('can:update,revision');
+    Route::post('/updateDetail/{revision}', [RevisionController::class, 'update_Detail'])->middleware('can:update,revision');
+
 });
 // Phân quyền
 Route::group([
@@ -84,6 +96,8 @@ Route::group([
     Route::post('/create', [UserController::class, 'create'])->middleware('can:create,App\Models\User');
     Route::post('/update', [UserController::class, 'update']);
     Route::post('/update/{user}', [UserController::class, 'updateAll'])->middleware('can:updateAll,user');
+    Route::post('/status', [UserController::class, 'approveArticle'])->middleware('can:status,App\Models\User');
+    Route::post('/statusRevision/{article}', [UserController::class, 'approveRevision'])->middleware('can:status,App\Models\User');
     Route::post('/delete', [UserController::class, 'destroy'])->middleware('can:delete,App\Models\User');
     Route::post('/setMood', [UserController::class, 'setMood']);
     Route::post('/updateMood/{user_meta}', [UserController::class, 'updateMood']);

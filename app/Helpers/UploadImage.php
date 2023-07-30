@@ -22,8 +22,8 @@ function uploadImage($image, $folder)
         }
         $image_path = $path . '/' . $name_image;
         Image::make($uploaded_image)->resize(300, 300)->save(storage_path('app/' . $path . '/' . $name_image));
-
-        return asset(Storage::url($image_path));
+        $width = '300';
+        return [asset(Storage::url($image_path)),$width];
     }
 
     foreach ($resize_pattern as $size) {
@@ -43,5 +43,6 @@ function uploadImage($image, $folder)
     }
     $image_path = $path . '/' . $name_image;
     Image::make($uploaded_image)->resize($width, $height)->save(storage_path('app/' . $path . '/' . $name_image));
-    return asset(Storage::url($image_path));
+    return [asset(Storage::url($image_path)),$width];
+
 }

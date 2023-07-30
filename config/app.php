@@ -23,7 +23,7 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
     'paginate' => 20,
-    'languages' => ['en','ko', 'zh-CN', 'zh-TW', 'th', 'ja', 'vi'],
+    'languages' => ['ko', 'zh-CN', 'zh-TW', 'th', 'ja', 'vi'],
 
     /*
     |--------------------------------------------------------------------------

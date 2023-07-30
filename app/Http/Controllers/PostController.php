@@ -62,6 +62,7 @@ class PostController extends BaseController
         }
         $user = Auth::id();
         $id_uploads = $request->uploadId;
+        $id_upload = implode(',', $id_uploads);
         $languages = config('app.languages');
         $title = $request->title;
         $status = $request->status;
@@ -72,20 +73,20 @@ class PostController extends BaseController
         $post->status = $status;
         $post->content = $content;
         $post->type = $type;
-        $post->user_id = $user;
+        $post->upload_id = $id_upload;
+        $post->author = $user;
         $post->slug = Str::slug($title);
         $post->save();
         if ($id_uploads) {
             foreach ($id_uploads as $id_upload) {
                 $upload = Upload::find($id_upload);
-                $upload->post_id = $post->id;
-                $upload->status = 'published';
+                $upload->status = 'active';
                 $upload->save();
             }
         }
         $upload_deletes = Upload::where('status', 'pending')->where('author', Auth::id())->get();
         foreach ($upload_deletes as $upload_delete) {
-            $thumbnail = $upload_delete->thumbnail;
+            $thumbnail = $upload_delete->url;
             $path = 'public' . Str::after($thumbnail, 'storage');
             Storage::delete($path);
         }
@@ -136,11 +137,30 @@ class PostController extends BaseController
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
         $id_uploads = $request->uploadId;
-        if ($id_uploads){
-           $uploads = $post->image();
-           foreach ($uploads as $upload){
-               $upload->delete();
-           }
+        if ($id_uploads) {
+            $id_uploadNew = implode(',', $id_uploads);
+            $upload_id = $post->upload_id;
+            $upload_id = explode(',', $upload_id);
+            $upload_deletes = Upload::whereIn('id', $upload_id)->get();
+            Upload::whereIn('id', $upload_id)->delete();
+            foreach ($upload_deletes as $upload_delete) {
+                $url = $upload_delete->url;
+                $path = 'public' . Str::after($url, 'storage');
+                Storage::delete($path);
+            }
+            foreach ($id_uploads as $id_upload) {
+                $upload = Upload::find($id_upload);
+                $upload->status = 'active';
+                $upload->save();
+            }
+            $upload_useless = Upload::where('status', 'pending')->where('author', Auth::id())->get();
+            foreach ($upload_useless as $upload_useles) {
+                $thumbnail = $upload_useles->thumbnail;
+                $path = 'public' . Str::after($thumbnail, 'storage');
+                Storage::delete($path);
+            }
+            Upload::where('status', 'pending')->where('author', Auth::id())->delete();
+            $post->upload_id = $id_uploadNew;
         }
         $languages = config('app.languages');
         $title = $request->title;
@@ -154,21 +174,6 @@ class PostController extends BaseController
         $post->type = $type;
         $post->slug = Str::slug($title);
         $post->save();
-        if ($id_uploads) {
-            foreach ($id_uploads as $id_upload) {
-                $upload = Upload::find($id_upload);
-                $upload->post_id = $post->id;
-                $upload->status = 'published';
-                $upload->save();
-            }
-        }
-        $upload_deletes = Upload::where('status', 'pending')->where('author', Auth::id())->get();
-        foreach ($upload_deletes as $upload_delete) {
-            $thumbnail = $upload_delete->thumbnail;
-            $path = 'public' . Str::after($thumbnail, 'storage');
-            Storage::delete($path);
-        }
-        Upload::where('status', 'pending')->where('author', Auth::id())->delete();
         $post->categories()->sync($category_id);
         $post->post_detail()->delete();
         foreach ($languages as $language) {
@@ -180,12 +185,8 @@ class PostController extends BaseController
             $post_detail->save();
         }
         if ($request->has('key') && $request->has('value')) {
-            $post_metas = $post->post_meta()->get();
             $key = $request->key;
             $value = $request->value;
-            foreach ($post_metas as $post_meta) {
-                $post_meta->delete();
-            }
             foreach ($key as $i => $meta_key) {
                 $post_meta = new PostMeta();
                 $post_meta->post_id = $post->id;

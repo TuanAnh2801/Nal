@@ -24,8 +24,4 @@ class Post extends Model
     public function post_detail(){
         return $this->hasMany(PostDetail::class);
     }
-    public function image()
-    {
-        return $this->hasMany(Upload::class);
-    }
 }

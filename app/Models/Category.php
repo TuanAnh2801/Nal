@@ -19,8 +19,4 @@ class Category extends Model
     {
         return $this->belongsToMany(Article::class);
     }
-    public function image()
-    {
-        return $this->hasOne(Upload::class);
-    }
 }

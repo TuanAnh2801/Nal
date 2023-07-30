@@ -19,8 +19,13 @@ class Article extends Model
     public function article_detail(){
         return $this->hasMany(ArticleDetail::class);
     }
-    public function image()
+
+    public function user()
     {
-        return $this->hasMany(Upload::class);
+        return $this->belongsTo(User::class);
+    }
+    public function revision()
+    {
+        return $this->hasMany(Revision::class);
     }
 }

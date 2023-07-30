@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Traits\HasPermission;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
-class ArticlePolicy
+class RevisionPolicy
 {
     use HandlesAuthorization, HasPermission;
 
@@ -17,10 +17,7 @@ class ArticlePolicy
             return true;
         }
     }
-    public function show(User $user,Article $article)
-    {
-        return $user->hasRole('editor') || $user->id === $article->user_id;
-    }
+
     public function create(User $user)
     {
         return $user->hasRole('editor') || $user->hasRole('user')|| $user->hasPermission('create');
@@ -31,12 +28,5 @@ class ArticlePolicy
         return $user->hasRole('editor') ||  $user->id === $article->user_id;
     }
 
-    public function delete(User $user)
-    {
 
-    }
-    public function restore(User $user)
-    {
-
-    }
 }

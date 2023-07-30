@@ -14,9 +14,10 @@ class UploadController extends BaseController
         $images = $request->image;
         $folder = $request->folder;
         foreach ($images as $image) {
-            $url = uploadImage($image, $folder);
+            list($url,$width) = uploadImage($image, $folder);
             $upload = new Upload();
-            $upload->thumbnail = $url;
+            $upload->url = $url;
+            $upload->width = $width;
             $upload->author = Auth::id();
             $upload->status = 'pending';
             $upload->save();

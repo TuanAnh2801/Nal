@@ -41,5 +41,9 @@ class UserPolicy
     {
         return $user->hasPermission('delete');
     }
+    public function status(User $user){
+
+    }
+
 
 }

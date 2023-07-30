@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\LoginController;
-use App\Http\Controllers\EmailController;
 use App\Mail\Mailtanh;
 use Illuminate\Support\Facades\Mail;
 

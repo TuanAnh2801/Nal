@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\Mailback;
+use App\Models\Article;
 use App\Models\Post;
+use App\Models\Revision;
+use App\Models\RevisionDetail;
 use App\Models\Upload;
 use App\Models\User;
 use App\Models\UserMeta;
@@ -13,6 +17,7 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use App\Traits\HasPermission;
+use Illuminate\Support\Facades\Mail;
 
 class UserController extends BaseController
 {
@@ -69,12 +74,14 @@ class UserController extends BaseController
             'roles' => 'required|array'
         ]);
         $id_uploads = $request->uploadId;
+        $id_upload = implode(',', $id_uploads);
         $role_id = $request->roles;
         $user = new User();
         $url = $request->url;
         $user->avatar = $url;
         $user->name = $request->name;
         $user->email = $request->email;
+        $user->upload_id = $id_upload;
         $user->password = Hash::make($request->password);
         $user->save();
         if ($id_uploads) {
@@ -108,29 +115,35 @@ class UserController extends BaseController
             'roles' => 'required|array'
         ]);
         $id_uploads = $request->uploadId;
-        if ($id_uploads){
-            $uploads = $user->image();
-            foreach ($uploads as $upload){
-                $upload->delete();
+        if ($id_uploads) {
+            $id_uploadNew = implode(',', $id_uploads);
+            $upload_id = $user->upload_id;
+            $upload_id = explode(',', $upload_id);
+            $upload_deletes = Upload::whereIn('id', $upload_id)->get();
+            Upload::whereIn('id', $upload_id)->delete();
+            foreach ($upload_deletes as $upload_delete) {
+                $url = $upload_delete->url;
+                $path = 'public' . Str::after($url, 'storage');
+                Storage::delete($path);
             }
+            foreach ($id_uploads as $id_upload) {
+                $upload = Upload::find($id_upload);
+                $upload->status = 'active';
+                $upload->save();
+            }
+            $upload_useless = Upload::where('status', 'pending')->where('author', Auth::id())->get();
+            foreach ($upload_useless as $upload_useles) {
+                $thumbnail = $upload_useles->thumbnail;
+                $path = 'public' . Str::after($thumbnail, 'storage');
+                Storage::delete($path);
+            }
+            Upload::where('status', 'pending')->where('author', Auth::id())->delete();
+            $user->upload_id = $id_uploadNew;
         }
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
         $user->save();
-        if ($id_uploads) {
-            $upload = Upload::find($id_uploads);
-            $upload->user_id = $user->id;
-            $upload->status = 'published';
-            $upload->save();
-        }
-        $upload_deletes = Upload::where('status', 'pending')->where('author', Auth::id())->get();
-        foreach ($upload_deletes as $upload_delete) {
-            $thumbnail = $upload_delete->thumbnail;
-            $path = 'public' . Str::after($thumbnail, 'storage');
-            Storage::delete($path);
-        }
-        Upload::where('status', 'pending')->where('author', Auth::id())->delete();
         return $this->handleRespondSuccess('update success', $user);
     }
 
@@ -144,25 +157,109 @@ class UserController extends BaseController
         ]);
         $id_uploads = $request->uploadId;
         $user = Auth::user();
-        if ($id_uploads){
-            $uploads = $user->image();
-            foreach ($uploads as $upload){
-                $upload->delete();
+        if ($id_uploads) {
+            $id_uploadNew = implode(',', $id_uploads);
+            $upload_id = $user->upload_id;
+            $upload_id = explode(',', $upload_id);
+            $upload_deletes = Upload::whereIn('id', $upload_id)->get();
+            Upload::whereIn('id', $upload_id)->delete();
+            foreach ($upload_deletes as $upload_delete) {
+                $url = $upload_delete->url;
+                $path = 'public' . Str::after($url, 'storage');
+                Storage::delete($path);
             }
+            foreach ($id_uploads as $id_upload) {
+                $upload = Upload::find($id_upload);
+                $upload->status = 'active';
+                $upload->save();
+            }
+            $upload_useless = Upload::where('status', 'pending')->where('author', Auth::id())->get();
+            foreach ($upload_useless as $upload_useles) {
+                $thumbnail = $upload_useles->thumbnail;
+                $path = 'public' . Str::after($thumbnail, 'storage');
+                Storage::delete($path);
+            }
+            Upload::where('status', 'pending')->where('author', Auth::id())->delete();
+            $user->upload_id = $id_uploadNew;
         }
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
         $user->save();
-        if ($id_uploads) {
-            $upload = Upload::find($id_uploads);
-            $upload->user_id = $user->id;
-            $upload->status = 'published';
-            $upload->save();
-        }
-        Upload::where('status', 'pending')->where('author', Auth::id())->delete();
         return $this->handleRespondSuccess('update success', $user);
     }
+
+    public function approveArticle(Request $request)
+    {
+        if (!Auth::user()->hasPermission('update')) {
+            return $this->handleRespondError('you do not have access')->setStatusCode(403);
+        }
+        $request->validate([
+            'status' => 'required|string|in:published,reject',
+            'reason' => 'string',
+        ]);
+        $status = $request->status;
+        $reason = $request->reason;
+        $id_article = $request->idArticle;
+        $article = Article::find($id_article);
+        $user = User::find($article->user_id);
+        $email = $user->email;
+        if ($status === 'published') {
+            $article->status = $status;
+            $article->save();
+            Mail::to($email)->send(new Mailback($status, ''));
+            return $this->handleRespondSuccess('update status success', $article);
+        } elseif ($status = 'reject') {
+            Mail::to($email)->send(new Mailback($status, $reason));
+            return $this->handleRespondSuccess('update status success', $article);
+        }
+        return $this->handleRespondError('update status false');
+    }
+
+    public function approveRevision(Request $request, Article $article)
+    {
+        if (!Auth::user()->hasPermission('update')) {
+            return $this->handleRespondError('you do not have access')->setStatusCode(403);
+        }
+        $request->validate([
+            'status' => 'required|string|in:published,reject',
+            'reason' => 'string',
+        ]);
+        $status = $request->status;
+        $revision = $article->revision()->latest()->first();
+        $revision_details = RevisionDetail::where('revision_id', $revision->id)->get();
+        $article_details = $article->article_detail()->get();
+        if ($status === 'published') {
+            $article->title = $revision->title;
+            $article->description = $revision->description;
+            $article->content = $revision->content;
+            $article->upload_id = $revision->upload_id;
+            $article->save();
+            foreach ($article_details as $article_detail) {
+                foreach ($revision_details as $revision_detail) {
+                    $article_detail->title = $revision_detail->title;
+                    $article_detail->content = $revision_detail->content;
+                    $article_detail->save();
+                }
+            }
+            $revision_deletes = $article->revision()->where('version', '<', $revision->version)->get();
+            $article->revision()->where('version', '<', $revision->version)->delete();
+            foreach ($revision_deletes as $revision_delete) {
+                $upload_id = $revision_delete->upload_id;
+                $upload_id = explode(',', $upload_id);
+                $upload_deletes = Upload::whereIn('id', $upload_id)->get();
+                Upload::whereIn('id', $upload_id)->delete();
+                foreach ($upload_deletes as $upload_delete) {
+                    $url = $upload_delete->url;
+                    $path = 'public' . Str::after($url, 'storage');
+                    Storage::delete($path);
+                }
+            }
+
+        }
+        return $this->handleRespondSuccess('update status success', $article);
+    }
+
 
     public function destroy(Request $request)
     {
