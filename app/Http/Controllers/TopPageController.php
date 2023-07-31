@@ -202,9 +202,9 @@ class TopPageController extends BaseController
             $top_page_detail->title = $request->title;
             $top_page_detail->content = $request->contents;
             $top_page_detail->save();
-            return $this->handleRespondSuccess('update article_detail success', $top_page_detail);
+            return $this->handleRespondSuccess('update top_page_detail success', $top_page_detail);
         }
-        return $this->handleRespondError('update article_detail false');
+        return $this->handleRespondError('update top_page_detail false');
 
     }
 
