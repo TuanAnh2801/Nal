@@ -22,7 +22,10 @@ class RevisionPolicy
     {
         return $user->hasRole('editor') || $user->hasRole('user')|| $user->hasPermission('create');
     }
-
+    public function read(User $user, Article $article)
+    {
+        return $user->hasRole('editor') ||  $user->id === $article->user_id;
+    }
     public function update(User $user, Article $article)
     {
         return $user->hasRole('editor') ||  $user->id === $article->user_id;

@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class RevisionRequest extends FormRequest
+class TopPageRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,9 +22,15 @@ class RevisionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => 'required|string|max: 255',
-            'content' => 'string',
-            'description' => 'required|string|max: 255',
+            'company_name'=>'required|string',
+            'area'=>'required|string',
+            'summary'=>'required|string|max:200',
+            'about'=> 'string|max:1000',
+            'intro_video'=> 'url',
+            'link_website'=> 'required|url',
+            'link_facebook'=>'url',
+            'link_instagram'=> 'url'
+
         ];
     }
 }

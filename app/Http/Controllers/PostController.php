@@ -20,6 +20,7 @@ class PostController extends BaseController
 
     public function index(Request $request)
     {
+
         $language = $request->input('language');
         $languages = config('app.languages');
         $language = in_array($language, $languages) ? $language : '';
@@ -155,7 +156,7 @@ class PostController extends BaseController
             }
             $upload_useless = Upload::where('status', 'pending')->where('author', Auth::id())->get();
             foreach ($upload_useless as $upload_useles) {
-                $thumbnail = $upload_useles->thumbnail;
+                $thumbnail = $upload_useles->url;
                 $path = 'public' . Str::after($thumbnail, 'storage');
                 Storage::delete($path);
             }
@@ -238,10 +239,13 @@ class PostController extends BaseController
                 if ($option === 'delete') {
                     $post->delete();
                 } elseif ($option === 'forceDelete') {
-                    $uploads = $post->image();
-                    foreach ($uploads as $upload) {
-                        $thumbnail = $upload->thumbnail;
-                        $path = 'public' . Str::after($thumbnail, 'storage');
+                    $upload_id = $post->upload_id;
+                    $upload_id = explode(',', $upload_id);
+                    $upload_deletes = Upload::whereIn('id', $upload_id)->get();
+                    Upload::whereIn('id', $upload_id)->delete();
+                    foreach ($upload_deletes as $upload_delete) {
+                        $url = $upload_delete->url;
+                        $path = 'public' . Str::after($url, 'storage');
                         Storage::delete($path);
                     }
                     $post->forceDelete();

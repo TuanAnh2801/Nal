@@ -21,12 +21,12 @@ class ArticleController extends BaseController
         $languages = config('app.languages');
         $language = in_array($language, $languages) ? $language : '';
         $status = $request->input('status');
-        $layout_status = ['draft', 'published', 'archived'];
+        $layout_status = ['pending', 'published', 'reject'];
         $sort = $request->input('sort');
         $sort_types = ['desc', 'asc'];
         $sort_option = ['title', 'created_at', 'updated_at'];
         $sort_by = $request->input('sort_by');
-        $status = in_array($status, $layout_status) ? $status : 'draft';
+        $status = in_array($status, $layout_status) ? $status : 'pending';
         $sort = in_array($sort, $sort_types) ? $sort : 'desc';
         $sort_by = in_array($sort_by, $sort_option) ? $sort_by : 'created_at';
         $search = $request->input('query');
@@ -39,10 +39,10 @@ class ArticleController extends BaseController
             $query = $query->where('title', 'LIKE', '%' . $search . '%');
         }
         if ($language) {
-            $query = $query->whereHas('post_detail', function ($q) use ($language) {
+            $query = $query->whereHas('article_detail', function ($q) use ($language) {
                 $q->where('lang', $language);
             });
-            $query = $query->with(['post_detail' => function ($q) use ($language) {
+            $query = $query->with(['article_detail' => function ($q) use ($language) {
                 $q->where('lang', $language);
             }]);
 
@@ -145,7 +145,7 @@ class ArticleController extends BaseController
                 }
                 $upload_useless = Upload::where('status', 'pending')->where('author', Auth::id())->get();
                 foreach ($upload_useless as $upload_useles) {
-                    $thumbnail = $upload_useles->thumbnail;
+                    $thumbnail = $upload_useles->url;
                     $path = 'public' . Str::after($thumbnail, 'storage');
                     Storage::delete($path);
                 }

@@ -12,7 +12,6 @@ function uploadImage($image, $folder)
     $resize_pattern = [
         '720x2000', '1280x2000', '480x2000', '330x2000', '200x2000', '100x2000', '300x300'
     ];
-    $size = null;
     $minDistance = PHP_INT_MAX;
     $name_image = Str::random(10);
     if ($folder === 'users') {
@@ -25,7 +24,16 @@ function uploadImage($image, $folder)
         $width = '300';
         return [asset(Storage::url($image_path)),$width];
     }
-
+    elseif ($folder === 'cover_image') {
+        $path = "public/{$folder}/" . date('Y/m/d');
+        if (!Storage::exists($path)) {
+            Storage::makeDirectory($path);
+        }
+        $image_path = $path . '/' . $name_image;
+        Image::make($uploaded_image)->resize(1400, 500)->save(storage_path('app/' . $path . '/' . $name_image));
+        $width = '1400';
+        return [asset(Storage::url($image_path)),$width];
+    }
     foreach ($resize_pattern as $size) {
         list($width, $height) = explode('x', $size);
         $distance = abs($width - $input_width) + abs($height - $input_height);

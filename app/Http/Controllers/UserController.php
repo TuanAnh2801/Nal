@@ -175,7 +175,7 @@ class UserController extends BaseController
             }
             $upload_useless = Upload::where('status', 'pending')->where('author', Auth::id())->get();
             foreach ($upload_useless as $upload_useles) {
-                $thumbnail = $upload_useles->thumbnail;
+                $thumbnail = $upload_useles->url;
                 $path = 'public' . Str::after($thumbnail, 'storage');
                 Storage::delete($path);
             }
@@ -216,34 +216,33 @@ class UserController extends BaseController
         return $this->handleRespondError('update status false');
     }
 
-    public function approveRevision(Request $request, Article $article)
+    public function approveRevision(Request $request, Revision $revision)
     {
         if (!Auth::user()->hasPermission('update')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $request->validate([
-            'status' => 'required|string|in:published,reject',
-            'reason' => 'string',
-        ]);
+        $reason = $request->reason;
         $status = $request->status;
-        $revision = $article->revision()->latest()->first();
-        $revision_details = RevisionDetail::where('revision_id', $revision->id)->get();
-        $article_details = $article->article_detail()->get();
-        if ($status === 'published') {
+        $article = $revision->article()->first();
+        $user = User::find($article->user_id);
+        $email = $user->email;
+        if ($status === 'access') {
+            $languages = config('app.languages');
+
             $article->title = $revision->title;
             $article->description = $revision->description;
             $article->content = $revision->content;
             $article->upload_id = $revision->upload_id;
             $article->save();
-            foreach ($article_details as $article_detail) {
-                foreach ($revision_details as $revision_detail) {
-                    $article_detail->title = $revision_detail->title;
-                    $article_detail->content = $revision_detail->content;
-                    $article_detail->save();
-                }
+            foreach ($languages as $language) {
+                $article_detail = $article->article_detail()->where('lang', $language)->first();
+                $revision_detail = $revision->revision_detail()->where('lang', $language)->first();
+                $article_detail->title = $revision_detail->title;
+                $article_detail->content = $revision_detail->content;
+                $article_detail->save();
             }
-            $revision_deletes = $article->revision()->where('version', '<', $revision->version)->get();
-            $article->revision()->where('version', '<', $revision->version)->delete();
+            $revision_deletes = $article->revision()->where('version', '!=', $revision->version)->get();
+            $article->revision()->where('version', '!=', $revision->version)->delete();
             foreach ($revision_deletes as $revision_delete) {
                 $upload_id = $revision_delete->upload_id;
                 $upload_id = explode(',', $upload_id);
@@ -255,9 +254,14 @@ class UserController extends BaseController
                     Storage::delete($path);
                 }
             }
-
+            Mail::to($email)->send(new Mailback($status, ''));
+            return $this->handleRespondSuccess('update status success', $article);
+        } elseif ($status === 'reject') {
+            Mail::to($email)->send(new Mailback($status, $reason));
+            return $this->handleRespondSuccess('update status success', $article);
         }
-        return $this->handleRespondSuccess('update status success', $article);
+        return $this->handleRespondError('update status false');
+
     }
 
 
@@ -281,15 +285,20 @@ class UserController extends BaseController
                     $user->save();
                     $user->delete();
                 } elseif ($option === 'forceDelete') {
-                    $upload = $user->image();
-                    $thumbnail = $upload->thumbnail;
-                    $path = 'public' . Str::after($thumbnail, 'storage');
-                    Storage::delete($path);
-                    $user->forceDelete();
+                    $upload_id = $user->upload_id;
+                    $upload_id = explode(',', $upload_id);
+                    $upload_deletes = Upload::whereIn('id', $upload_id)->get();
+                    Upload::whereIn('id', $upload_id)->delete();
+                    foreach ($upload_deletes as $upload_delete) {
+                        $url = $upload_delete->url;
+                        $path = 'public' . Str::after($url, 'storage');
+                        Storage::delete($path);
+                        $user->forceDelete();
+                    }
                 }
             }
+            return $this->handleRespondSuccess('delete success', []);
         }
-        return $this->handleRespondSuccess('delete success', []);
     }
 
     public function setMood(Request $request)
@@ -334,7 +343,8 @@ class UserController extends BaseController
 
     }
 
-    public function getMood()
+    public
+    function getMood()
     {
         $post_id = Auth::user()->user_meta()->where('key', 'favorite')->pluck('value');
         $post = Post::find($post_id);
