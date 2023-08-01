@@ -15,106 +15,81 @@ use App\Http\Requests\TopPageRequest;
 class TopPageController extends BaseController
 {
     use HasPermission;
-
-    public function index(Request $request)
-    {
-        $language = $request->input('language');
-        $languages = config('app.languages');
-        $language = in_array($language, $languages) ? $language : '';
-        $status = $request->input('status');
-        $layout_status = ['active', 'inactive'];
-        $sort = $request->input('sort');
-        $sort_types = ['desc', 'asc'];
-        $sort_option = ['title', 'created_at', 'updated_at'];
-        $sort_by = $request->input('sort_by');
-        $status = in_array($status, $layout_status) ? $status : 'inactive';
-        $sort = in_array($sort, $sort_types) ? $sort : 'desc';
-        $sort_by = in_array($sort_by, $sort_option) ? $sort_by : 'created_at';
-        $search = $request->input('query');
-        $limit = request()->input('limit') ?? config('app.paginate');
-        $query = TopPage::select('*');
-        if ($status) {
-            $query = $query->where('status', $status);
-        }
-        if ($search) {
-            $query = $query->where('title', 'LIKE', '%' . $search . '%');
-        }
-        if ($language) {
-            $query = $query->whereHas('top_pageDetail', function ($q) use ($language) {
-                $q->where('lang', $language);
-            });
-            $query = $query->with(['top_pageDetail' => function ($q) use ($language) {
-                $q->where('lang', $language);
-            }]);
-
-        }
-        $articles = $query->orderBy($sort_by, $sort)->paginate($limit);
-
-        return $this->handleRespondSuccess('Get posts successfully', $articles);
-    }
-
     public function store(TopPageRequest $request, TopPage $topPage)
     {
         if (!Auth::user()->hasPermission('create')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $id_uploads = $request->uploadId;
-        $id_upload = implode(',', $id_uploads);
-        $user = Auth::id();
-        $languages = config('app.languages');
-        $company_name = $request->company_name;
-        $area = $request->area;
-        $summary = $request->summary;
-        $about = $request->about;
-        $intro_video = $request->intro_video;
-        $link_website = $request->link_website;
-        $link_facebook = $request->link_facebook;
-        $link_instagram = $request->link_instagram;
-        $topPage->company_name = $company_name;
-        $topPage->area = $area;
-        $topPage->summary = $summary;
-        $topPage->about = $about;
-        $topPage->intro_video = $intro_video;
-        $topPage->link_website = $link_website;
-        $topPage->link_facebook = $link_facebook;
-        $topPage->link_instagram = $link_instagram;
-        $topPage->user_id = $user;
-        $topPage->upload_id = $id_upload;
-        $topPage->save();
-        if ($id_uploads) {
-            foreach ($id_uploads as $id_upload) {
-                $upload = Upload::find($id_upload);
-                $upload->status = 'active';
-                $upload->save();
+        if (!$request->user()->topPage()->exists()) {
+            $id_uploads = $request->uploadId;
+            $id_upload = implode(',', $id_uploads);
+            $user = Auth::id();
+            $languages = config('app.languages');
+            $company_name = $request->company_name;
+            $area = $request->area;
+            $summary = $request->summary;
+            $about = $request->about;
+            $intro_video = $request->intro_video;
+            $link_website = $request->link_website;
+            $link_facebook = $request->link_facebook;
+            $link_instagram = $request->link_instagram;
+            $topPage->company_name = $company_name;
+            $topPage->area = $area;
+            $topPage->summary = $summary;
+            $topPage->about = $about;
+            $topPage->intro_video = $intro_video;
+            $topPage->link_website = $link_website;
+            $topPage->link_facebook = $link_facebook;
+            $topPage->link_instagram = $link_instagram;
+            $topPage->user_id = $user;
+            $topPage->upload_id = $id_upload;
+            $topPage->save();
+            if ($id_uploads) {
+                foreach ($id_uploads as $id_upload) {
+                    $upload = Upload::find($id_upload);
+                    $upload->status = 'active';
+                    $upload->save();
+                }
             }
+            $upload_deletes = Upload::where('status', 'pending')->where('author', Auth::id())->get();
+            foreach ($upload_deletes as $upload_delete) {
+                $thumbnail = $upload_delete->thumbnail;
+                $path = 'public' . Str::after($thumbnail, 'storage');
+                Storage::delete($path);
+            }
+            Upload::where('status', 'pending')->where('author', Auth::id())->delete();
+            foreach ($languages as $language) {
+                $top_page_detail = new TopPageDetail();
+                $top_page_detail->company_name = languages($language, $company_name);
+                $top_page_detail->area = languages($language, $area);
+                $top_page_detail->summary = languages($language, $summary);
+                $top_page_detail->about = languages($language, $about);
+                $top_page_detail->lang = $language;
+                $top_page_detail->top_page_id = $topPage->id;
+                $top_page_detail->save();
+            }
+            $detail_data = $topPage->top_pageDetail()->get();
+            return $this->handleRespondSuccess('create success', [
+                'topPage' => $topPage,
+                'top_page_detail' => $detail_data
+            ]);
         }
-        $upload_deletes = Upload::where('status', 'pending')->where('author', Auth::id())->get();
-        foreach ($upload_deletes as $upload_delete) {
-            $thumbnail = $upload_delete->thumbnail;
-            $path = 'public' . Str::after($thumbnail, 'storage');
-            Storage::delete($path);
-        }
-        Upload::where('status', 'pending')->where('author', Auth::id())->delete();
-        foreach ($languages as $language) {
-            $top_page_detail = new TopPageDetail();
-            $top_page_detail->company_name = languages($language, $company_name);
-            $top_page_detail->area = languages($language, $area);
-            $top_page_detail->summary = languages($language, $summary);
-            $top_page_detail->about = languages($language, $about);
-            $top_page_detail->lang = $language;
-            $top_page_detail->top_page_id = $topPage->id;
-            $top_page_detail->save();
-        }
-        $detail_data = $topPage->top_pageDetail()->get();
-        return $this->handleRespondSuccess('create success', [
-            'topPage' => $topPage,
-            'top_page_detail' => $detail_data
-        ]);
+        return $this->handleRespondError('User already has toppage');
     }
 
     public function show(Request $request, TopPage $topPage)
     {
         $language = $request->language;
+        $uploads = $topPage->upload_id;
+        $uploads = explode(',', $uploads);
+        if ($uploads) {
+            foreach ($uploads as $upload) {
+                $image[] = Upload::where('id', $upload)->where('type','image')->pluck('url')->first();
+                $video =   Upload::where('id', $upload)->where('type','video')->pluck('url')->first();
+            }
+            $topPage->image = $image;
+            $topPage->video = $video;
+        }
         $top_page_detail = $topPage->top_pageDetail()->where('lang', $language)->first();
         return $this->handleRespondSuccess('get data success', [
             'topPage' => $topPage,

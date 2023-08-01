@@ -74,6 +74,14 @@ class CategoryController extends BaseController
 
     public function show(Category $category)
     {
+        $uploads = $category->upload_id;
+        $uploads = explode(',', $uploads);
+        if ($uploads) {
+            foreach ($uploads as $upload) {
+                $image[] = Upload::where('id', $upload)->pluck('url')->first();
+            }
+            $category->image = $image;
+        }
         $post = $category->post()->where('status', '=', 'active')->get();
         $data = [
             'category' => $category,

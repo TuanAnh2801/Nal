@@ -28,9 +28,9 @@ class TopPageRequest extends FormRequest
             'about'=> 'string|max:1000',
             'intro_video'=> 'url',
             'link_website'=> 'required|url',
-            'link_facebook'=>'url',
-            'link_instagram'=> 'url'
-
+            'link_facebook'=>'url|starts_with:https://www.facebook.com/',
+            'link_instagram'=> 'url|starts_with:https://www.instagram.com/',
+            'status'=> 'in:active,inactive'
         ];
     }
 }

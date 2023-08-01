@@ -122,6 +122,14 @@ class PostController extends BaseController
     public function show(Post $post, Request $request)
     {
         $language = $request->language;
+        $uploads = $post->upload_id;
+        $uploads = explode(',', $uploads);
+        if ($uploads) {
+            foreach ($uploads as $upload) {
+                $image[] = Upload::where('id', $upload)->pluck('url')->first();
+            }
+            $post->image = $image;
+        }
         $category = $post->categories()->where('status', '=', 'active')->get();
         $post_detail = $post->post_detail()->where('lang', '=', $language)->get();
         $data = [

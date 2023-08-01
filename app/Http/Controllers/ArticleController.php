@@ -106,10 +106,17 @@ class ArticleController extends BaseController
         ]);
     }
 
-
     public function show(Article $article, Request $request)
     {
         $language = $request->language;
+        $uploads = $article->upload_id;
+        $uploads = explode(',', $uploads);
+        if ($uploads) {
+            foreach ($uploads as $upload) {
+                $image[] = Upload::where('id', $upload)->pluck('url')->first();
+            }
+            $article->image = $image;
+        }
         $category = $article->categories()->where('status', '=', 'active')->get();
         $article_detail = $article->article_detail()->where('lang', '=', $language)->get();
         $data = [

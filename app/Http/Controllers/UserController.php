@@ -46,22 +46,6 @@ class UserController extends BaseController
 
     }
 
-    public function show()
-    {
-        if (!Auth::user()->hasPermission('read')) {
-            return $this->handleRespondError('you do not have access')->setStatusCode(403);
-        }
-        $data = User::all();
-        return $this->handleRespondSuccess('data', $data);
-
-    }
-
-    public function view()
-    {
-        $user = Auth::user();
-        return $this->handleRespondSuccess('user', $user);
-    }
-
     public function create(Request $request)
     {
         if (!Auth::user()->hasPermission('create')) {
@@ -102,7 +86,38 @@ class UserController extends BaseController
         return $this->handleRespondSuccess('register success', $user);
 
     }
+    public function view()
+    {
+        $user = Auth::user();
+        $uploads = $user->upload_id;
+        $uploads = explode(',', $uploads);
+        if ($uploads) {
+            foreach ($uploads as $upload) {
+                $image[] = Upload::where('id', $upload)->pluck('url')->first();
+            }
+            $user->image = $image;
+        }
+        return $this->handleRespondSuccess('user', $user);
+    }
+    public function show()
+    {
+        if (!Auth::user()->hasPermission('read')) {
+            return $this->handleRespondError('you do not have access')->setStatusCode(403);
+        }
+        $users = User::all();
+        foreach ($users as $user) {
+            $uploads = $user->upload_id;
+            $uploads = explode(',', $uploads);
+            if ($uploads) {
+                foreach ($uploads as $upload) {
+                    $image[] = Upload::where('id', $upload)->pluck('url')->first();
+                }
+                $user->image = $image;
+            }
+        }
+        return $this->handleRespondSuccess('data', $users);
 
+    }
     public function updateAll(Request $request, User $user)
     {
         if (!Auth::user()->hasPermission('update')) {

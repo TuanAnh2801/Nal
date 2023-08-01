@@ -13,6 +13,7 @@ use App\Models\Post;
 use App\Models\Article;
 use App\Http\Controllers\TopPageController;
 use App\Http\Controllers\RevisionArticleController;
+use App\Http\Controllers\DashboardController;
 Route::group([
     'prefix' => 'user'
 ], function () {
@@ -96,12 +97,18 @@ Route::group([
     'middleware' => 'jwt.auth',
     'prefix' => 'topPage'
 ], function () {
-    Route::get('/', [TopPageController::class, 'index'])->middleware('can:show,App\Models\TopPage');
     Route::post('/create', [TopPageController::class, 'store'])->middleware('can:create,App\Models\TopPage');
     Route::post('/update/{topPage}', [TopPageController::class, 'update'])->middleware('can:update,topPage');
     Route::get('/{topPage}', [TopPageController::class, 'show'])->middleware('can:show,topPage');
     Route::post('/updateDetail/{topPage}', [TopPageController::class, 'update_Detail'])->middleware('can:update,topPage');
 
+});
+// dashboard
+Route::group([
+    'middleware' => 'jwt.auth',
+    'prefix' => 'show'
+], function () {
+    Route::get('/dashboard', [DashboardController::class, 'dashboard']);
 });
 // Phân quyền
 Route::group([

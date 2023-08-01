@@ -21,7 +21,7 @@ class UploadController extends BaseController
                 $upload->url = $url;
                 $upload->width = $width;
                 $upload->author = Auth::id();
-                $upload->type = 'image';
+                $upload->type = $folder;
                 $upload->status = 'pending';
                 $upload->save();
                 $data[] = $upload;
