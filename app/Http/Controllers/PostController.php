@@ -43,9 +43,6 @@ class PostController extends BaseController
             $query = $query->where('title', 'LIKE', '%' . $search . '%');
         }
         if ($language) {
-            $query = $query->whereHas('post_detail', function ($q) use ($language) {
-                $q->where('lang', $language);
-            });
             $query = $query->with(['post_detail' => function ($q) use ($language) {
                 $q->where('lang', $language);
             }]);

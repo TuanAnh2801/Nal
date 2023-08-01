@@ -12,7 +12,7 @@ class DashboardController extends BaseController
     public function dashboard()
     {
         $count_category = Category::all()->where('status', '=', 'active')->count();
-        $category_hots = Category::limit(10)->where('status', 'active')->get();
+        $category_hots = Category::latest()->where('status', 'active')->limit(10)->get();
         foreach ($category_hots as $category_hot) {
             $uploads = $category_hot->upload_id;
             $uploads = explode(',', $uploads);
@@ -24,7 +24,7 @@ class DashboardController extends BaseController
             }
         }
         $count_post = Post::all()->where('status', '=', 'published')->count();
-        $post_hots = Post::limit(10)->where('status', 'published')->get();
+        $post_hots = Post::latest()->where('status', 'active')->limit(10)->get();
         foreach ($post_hots as $post_hot) {
             $uploads = $post_hot->upload_id;
             $uploads = explode(',', $uploads);
@@ -36,7 +36,7 @@ class DashboardController extends BaseController
             }
         }
         $count_article = Article::all()->where('status', '=', 'published')->count();
-        $article_hots = Article::limit(10)->where('status', 'published')->get();
+        $article_hots = Article::latest()->where('status', 'active')->limit(10)->get();
         foreach ($article_hots as $article_hot) {
             $uploads = $article_hot->upload_id;
             $uploads = explode(',', $uploads);

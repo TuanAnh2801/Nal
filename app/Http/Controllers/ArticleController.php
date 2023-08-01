@@ -39,9 +39,6 @@ class ArticleController extends BaseController
             $query = $query->where('title', 'LIKE', '%' . $search . '%');
         }
         if ($language) {
-            $query = $query->whereHas('article_detail', function ($q) use ($language) {
-                $q->where('lang', $language);
-            });
             $query = $query->with(['article_detail' => function ($q) use ($language) {
                 $q->where('lang', $language);
             }]);

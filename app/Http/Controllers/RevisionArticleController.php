@@ -40,9 +40,6 @@ class RevisionArticleController extends BaseController
             $query = $query->where('title', 'LIKE', '%' . $search . '%');
         }
         if ($language) {
-            $query = $query->whereHas('revision_detail', function ($q) use ($language) {
-                $q->where('lang', $language);
-            });
             $query = $query->with(['revision_detail' => function ($q) use ($language) {
                 $q->where('lang', $language);
             }]);

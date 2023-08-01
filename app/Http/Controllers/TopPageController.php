@@ -15,6 +15,7 @@ use App\Http\Requests\TopPageRequest;
 class TopPageController extends BaseController
 {
     use HasPermission;
+
     public function store(TopPageRequest $request, TopPage $topPage)
     {
         if (!Auth::user()->hasPermission('create')) {
@@ -84,8 +85,8 @@ class TopPageController extends BaseController
         $uploads = explode(',', $uploads);
         if ($uploads) {
             foreach ($uploads as $upload) {
-                $image[] = Upload::where('id', $upload)->where('type','image')->pluck('url')->first();
-                $video =   Upload::where('id', $upload)->where('type','video')->pluck('url')->first();
+                $image[] = Upload::where('id', $upload)->where('type', 'image')->pluck('url')->first();
+                $video = Upload::where('id', $upload)->where('type', 'video')->pluck('url')->first();
             }
             $topPage->image = $image;
             $topPage->video = $video;
