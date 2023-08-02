@@ -31,7 +31,8 @@
         },
         "files": [
             "app/Helpers/Language.php",
-            "app/Helpers/uploadImage.php"
+            "app/Helpers/uploadImage.php",
+            "app/Helpers/handleUpload.php"
         ]
     },
     "autoload-dev": {

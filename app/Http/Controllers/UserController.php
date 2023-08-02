@@ -6,7 +6,6 @@ use App\Mail\Mailback;
 use App\Models\Article;
 use App\Models\Post;
 use App\Models\Revision;
-use App\Models\RevisionDetail;
 use App\Models\Upload;
 use App\Models\User;
 use App\Models\UserMeta;
@@ -45,7 +44,6 @@ class UserController extends BaseController
         return $this->handleRespondSuccess('Get posts successfully', $users);
 
     }
-
     public function create(Request $request)
     {
         if (!Auth::user()->hasPermission('create')) {
@@ -69,23 +67,14 @@ class UserController extends BaseController
         $user->password = Hash::make($request->password);
         $user->save();
         if ($id_uploads) {
-            $upload = Upload::find($id_uploads);
-            $upload->user_id = $user->id;
-            $upload->status = 'published';
-            $upload->save();
+            handleUpload($id_uploads);
         }
-        $upload_deletes = Upload::where('status', 'pending')->where('author', Auth::id())->get();
-        foreach ($upload_deletes as $upload_delete) {
-            $thumbnail = $upload_delete->thumbnail;
-            $path = 'public' . Str::after($thumbnail, 'storage');
-            Storage::delete($path);
-        }
-        Upload::where('status', 'pending')->where('author', Auth::id())->delete();
+
         $user->roles()->sync($role_id);
         event(new Registered($user));
-        return $this->handleRespondSuccess('register success', $user);
-
+        return $this->handleRespondSuccess('create user success', $user);
     }
+
     public function view()
     {
         $user = Auth::user();
@@ -97,8 +86,9 @@ class UserController extends BaseController
             }
             $user->image = $image;
         }
-        return $this->handleRespondSuccess('user', $user);
+        return $this->handleRespondSuccess('user data', $user);
     }
+
     public function show()
     {
         if (!Auth::user()->hasPermission('read')) {
@@ -118,6 +108,7 @@ class UserController extends BaseController
         return $this->handleRespondSuccess('data', $users);
 
     }
+
     public function updateAll(Request $request, User $user)
     {
         if (!Auth::user()->hasPermission('update')) {
@@ -130,36 +121,28 @@ class UserController extends BaseController
             'roles' => 'required|array'
         ]);
         $id_uploads = $request->uploadId;
+        $removal_folder = $request->removalFolder;
         if ($id_uploads) {
-            $id_uploadNew = implode(',', $id_uploads);
             $upload_id = $user->upload_id;
             $upload_id = explode(',', $upload_id);
-            $upload_deletes = Upload::whereIn('id', $upload_id)->get();
-            Upload::whereIn('id', $upload_id)->delete();
+            $folder_is_kept = array_diff($upload_id, $removal_folder);
+            $upload_deletes = Upload::whereIn('id', $removal_folder)->get();
+            Upload::whereIn('id', $removal_folder)->delete();
             foreach ($upload_deletes as $upload_delete) {
                 $url = $upload_delete->url;
                 $path = 'public' . Str::after($url, 'storage');
                 Storage::delete($path);
             }
-            foreach ($id_uploads as $id_upload) {
-                $upload = Upload::find($id_upload);
-                $upload->status = 'active';
-                $upload->save();
-            }
-            $upload_useless = Upload::where('status', 'pending')->where('author', Auth::id())->get();
-            foreach ($upload_useless as $upload_useles) {
-                $thumbnail = $upload_useles->thumbnail;
-                $path = 'public' . Str::after($thumbnail, 'storage');
-                Storage::delete($path);
-            }
-            Upload::where('status', 'pending')->where('author', Auth::id())->delete();
+            handleUpload($id_uploads);
+            $id_uploadNew = array_merge($folder_is_kept, $id_uploads);
+            $id_uploadNew = implode(',', $id_uploadNew);
             $user->upload_id = $id_uploadNew;
         }
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
         $user->save();
-        return $this->handleRespondSuccess('update success', $user);
+        return $this->handleRespondSuccess('update user success', $user);
     }
 
     public function update(Request $request)
@@ -170,38 +153,30 @@ class UserController extends BaseController
             'password' => 'required|string',
             'roles' => 'required|array'
         ]);
-        $id_uploads = $request->uploadId;
         $user = Auth::user();
+        $id_uploads = $request->uploadId;
+        $removal_folder = $request->removalFolder;
         if ($id_uploads) {
-            $id_uploadNew = implode(',', $id_uploads);
             $upload_id = $user->upload_id;
             $upload_id = explode(',', $upload_id);
-            $upload_deletes = Upload::whereIn('id', $upload_id)->get();
-            Upload::whereIn('id', $upload_id)->delete();
+            $folder_is_kept = array_diff($upload_id, $removal_folder);
+            $upload_deletes = Upload::whereIn('id', $removal_folder)->get();
+            Upload::whereIn('id', $removal_folder)->delete();
             foreach ($upload_deletes as $upload_delete) {
                 $url = $upload_delete->url;
                 $path = 'public' . Str::after($url, 'storage');
                 Storage::delete($path);
             }
-            foreach ($id_uploads as $id_upload) {
-                $upload = Upload::find($id_upload);
-                $upload->status = 'active';
-                $upload->save();
-            }
-            $upload_useless = Upload::where('status', 'pending')->where('author', Auth::id())->get();
-            foreach ($upload_useless as $upload_useles) {
-                $thumbnail = $upload_useles->url;
-                $path = 'public' . Str::after($thumbnail, 'storage');
-                Storage::delete($path);
-            }
-            Upload::where('status', 'pending')->where('author', Auth::id())->delete();
+            handleUpload($id_uploads);
+            $id_uploadNew = array_merge($folder_is_kept, $id_uploads);
+            $id_uploadNew = implode(',', $id_uploadNew);
             $user->upload_id = $id_uploadNew;
         }
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
         $user->save();
-        return $this->handleRespondSuccess('update success', $user);
+        return $this->handleRespondSuccess('update profile success', $user);
     }
 
     public function approveArticle(Request $request)
@@ -223,10 +198,10 @@ class UserController extends BaseController
             $article->status = $status;
             $article->save();
             Mail::to($email)->send(new Mailback($status, ''));
-            return $this->handleRespondSuccess('update status success', $article);
+            return $this->handleRespondSuccess('update status article success', $article);
         } elseif ($status = 'reject') {
             Mail::to($email)->send(new Mailback($status, $reason));
-            return $this->handleRespondSuccess('update status success', $article);
+            return $this->handleRespondSuccess('update status article success', $article);
         }
         return $this->handleRespondError('update status false');
     }
@@ -243,7 +218,10 @@ class UserController extends BaseController
         $email = $user->email;
         if ($status === 'access') {
             $languages = config('app.languages');
-
+            $upload_id_article = explode(',',$article->upload_id) ;
+            $upload_id_revision = explode(',',$revision->upload_id) ;
+            $upload_id_article_save = array_intersect($upload_id_revision, $upload_id_article);
+            $upload_id_article_delete = array_diff($upload_id_article,$upload_id_article_save);
             $article->title = $revision->title;
             $article->description = $revision->description;
             $article->content = $revision->content;
@@ -256,8 +234,16 @@ class UserController extends BaseController
                 $article_detail->content = $revision_detail->content;
                 $article_detail->save();
             }
+            $upload_deletes = Upload::whereIn('id', $upload_id_article_delete)->get();
+            Upload::whereIn('id', $upload_id_article_delete)->delete();
+            foreach ($upload_deletes as $upload_delete) {
+                $url = $upload_delete->url;
+                $path = 'public' . Str::after($url, 'storage');
+                Storage::delete($path);
+            }
+
             $revision_deletes = $article->revision()->where('version', '!=', $revision->version)->get();
-            $article->revision()->where('version', '!=', $revision->version)->delete();
+            $article->revision()->delete();
             foreach ($revision_deletes as $revision_delete) {
                 $upload_id = $revision_delete->upload_id;
                 $upload_id = explode(',', $upload_id);
@@ -270,10 +256,10 @@ class UserController extends BaseController
                 }
             }
             Mail::to($email)->send(new Mailback($status, ''));
-            return $this->handleRespondSuccess('update status success', $article);
+            return $this->handleRespondSuccess('fix article success', $article);
         } elseif ($status === 'reject') {
             Mail::to($email)->send(new Mailback($status, $reason));
-            return $this->handleRespondSuccess('update status success', $article);
+            return $this->handleRespondSuccess('rejected the edit success', $article);
         }
         return $this->handleRespondError('update status false');
 
@@ -312,7 +298,7 @@ class UserController extends BaseController
                     }
                 }
             }
-            return $this->handleRespondSuccess('delete success', []);
+            return $this->handleRespondSuccess('delete user success', []);
         }
     }
 
@@ -358,8 +344,7 @@ class UserController extends BaseController
 
     }
 
-    public
-    function getMood()
+    public function getMood()
     {
         $post_id = Auth::user()->user_meta()->where('key', 'favorite')->pluck('value');
         $post = Post::find($post_id);

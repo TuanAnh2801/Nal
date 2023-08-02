@@ -56,20 +56,9 @@ class CategoryController extends BaseController
         $category->slug = Str::slug($request->name);
         $category->save();
         if ($id_uploads) {
-            foreach ($id_uploads as $id_upload) {
-                $upload = Upload::find($id_upload);
-                $upload->status = 'active';
-                $upload->save();
-            }
+            handleUpload($id_uploads);
         }
-        $upload_deletes = Upload::where('status', 'pending')->where('author', Auth::id())->get();
-        foreach ($upload_deletes as $upload_delete) {
-            $thumbnail = $upload_delete->url;
-            $path = 'public' . Str::after($thumbnail, 'storage');
-            Storage::delete($path);
-        }
-        Upload::where('status', 'pending')->where('author', Auth::id())->delete();
-        return $this->handleRespondSuccess('create success', $category);
+        return $this->handleRespondSuccess('create category success', $category);
     }
 
     public function show(Category $category)
@@ -87,7 +76,7 @@ class CategoryController extends BaseController
             'category' => $category,
             'post' => $post
         ];
-        return $this->handleRespondSuccess('data', $data);
+        return $this->handleRespondSuccess('data category', $data);
     }
 
     public function update(CategoryRequest $request, Category $category)
@@ -96,29 +85,21 @@ class CategoryController extends BaseController
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
         $id_uploads = $request->uploadId;
+        $removal_folder= $request->removalFolder;
         if ($id_uploads) {
-            $id_uploadNew = implode(',', $id_uploads);
             $upload_id = $category->upload_id;
             $upload_id = explode(',', $upload_id);
-            $upload_deletes = Upload::whereIn('id', $upload_id)->get();
-            Upload::whereIn('id', $upload_id)->delete();
+            $folder_is_kept = array_diff($upload_id,$removal_folder);
+            $upload_deletes = Upload::whereIn('id', $removal_folder)->get();
+            Upload::whereIn('id', $removal_folder)->delete();
             foreach ($upload_deletes as $upload_delete) {
                 $url = $upload_delete->url;
                 $path = 'public' . Str::after($url, 'storage');
                 Storage::delete($path);
             }
-            foreach ($id_uploads as $id_upload) {
-                $upload = Upload::find($id_upload);
-                $upload->status = 'active';
-                $upload->save();
-            }
-            $upload_useless = Upload::where('status', 'pending')->where('author', Auth::id())->get();
-            foreach ($upload_useless as $upload_useles) {
-                $thumbnail = $upload_useles->url;
-                $path = 'public' . Str::after($thumbnail, 'storage');
-                Storage::delete($path);
-            }
-            Upload::where('status', 'pending')->where('author', Auth::id())->delete();
+            handleUpload($id_uploads);
+            $id_uploadNew = array_merge($folder_is_kept,$id_uploads);
+            $id_uploadNew = implode(',', $id_uploadNew);
             $category->upload_id = $id_uploadNew;
         }
         $category->name = $request->name;
@@ -126,7 +107,7 @@ class CategoryController extends BaseController
         $category->type = $request->type;
         $category->slug = Str::slug($request->name);
         $category->save();
-        return $this->handleRespondSuccess('update success', $category);
+        return $this->handleRespondSuccess('update category success', $category);
     }
 
     public function destroy(Request $request)
@@ -159,9 +140,9 @@ class CategoryController extends BaseController
                         $category->forceDelete();
                     }
                 }
-                return $this->handleRespondSuccess('delete success', []);
+                return $this->handleRespondSuccess('delete category success', []);
             }
-            return $this->handleRespondError('delete false');
+            return $this->handleRespondError('delete category false');
         }
     }
 
@@ -180,7 +161,7 @@ class CategoryController extends BaseController
             $category->status = 'active';
             $category->save();
         }
-        return $this->handleRespondSuccess('restore success', true);
+        return $this->handleRespondSuccess('restore category success', true);
     }
 
 }

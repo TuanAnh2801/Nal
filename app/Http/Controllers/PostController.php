@@ -7,7 +7,6 @@ use App\Http\Requests\PostRequest;
 use App\Models\PostDetail;
 use App\Models\PostMeta;
 use App\Models\Upload;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -20,7 +19,6 @@ class PostController extends BaseController
 
     public function index(Request $request)
     {
-
         $language = $request->input('language');
         $languages = config('app.languages');
         $language = in_array($language, $languages) ? $language : '';
@@ -76,19 +74,8 @@ class PostController extends BaseController
         $post->slug = Str::slug($title);
         $post->save();
         if ($id_uploads) {
-            foreach ($id_uploads as $id_upload) {
-                $upload = Upload::find($id_upload);
-                $upload->status = 'active';
-                $upload->save();
-            }
+            handleUpload($id_uploads);
         }
-        $upload_deletes = Upload::where('status', 'pending')->where('author', Auth::id())->get();
-        foreach ($upload_deletes as $upload_delete) {
-            $thumbnail = $upload_delete->url;
-            $path = 'public' . Str::after($thumbnail, 'storage');
-            Storage::delete($path);
-        }
-        Upload::where('status', 'pending')->where('author', Auth::id())->delete();
         $post->categories()->sync($category_id);
         foreach ($languages as $language) {
             $post_detail = new PostDetail();
@@ -110,7 +97,7 @@ class PostController extends BaseController
             }
         }
         $meta_data = $post->post_meta()->get();
-        return $this->handleRespondSuccess('create success', [
+        return $this->handleRespondSuccess('create post success', [
             'post' => $post,
             'post_meta' => $meta_data
         ]);
@@ -134,7 +121,7 @@ class PostController extends BaseController
             'post' => $post,
             'post_detail' => $post_detail
         ];
-        return $this->handleRespondSuccess('data', $data);
+        return $this->handleRespondSuccess('data post', $data);
     }
 
     public function update(PostRequest $request, Post $post)
@@ -143,29 +130,21 @@ class PostController extends BaseController
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
         $id_uploads = $request->uploadId;
+        $removal_folder= $request->removalFolder;
         if ($id_uploads) {
-            $id_uploadNew = implode(',', $id_uploads);
             $upload_id = $post->upload_id;
             $upload_id = explode(',', $upload_id);
-            $upload_deletes = Upload::whereIn('id', $upload_id)->get();
-            Upload::whereIn('id', $upload_id)->delete();
+            $folder_is_kept = array_diff($upload_id,$removal_folder);
+            $upload_deletes = Upload::whereIn('id', $removal_folder)->get();
+            Upload::whereIn('id', $removal_folder)->delete();
             foreach ($upload_deletes as $upload_delete) {
                 $url = $upload_delete->url;
                 $path = 'public' . Str::after($url, 'storage');
                 Storage::delete($path);
             }
-            foreach ($id_uploads as $id_upload) {
-                $upload = Upload::find($id_upload);
-                $upload->status = 'active';
-                $upload->save();
-            }
-            $upload_useless = Upload::where('status', 'pending')->where('author', Auth::id())->get();
-            foreach ($upload_useless as $upload_useles) {
-                $thumbnail = $upload_useles->url;
-                $path = 'public' . Str::after($thumbnail, 'storage');
-                Storage::delete($path);
-            }
-            Upload::where('status', 'pending')->where('author', Auth::id())->delete();
+            handleUpload($id_uploads);
+            $id_uploadNew = array_merge($folder_is_kept,$id_uploads);
+            $id_uploadNew = implode(',', $id_uploadNew);
             $post->upload_id = $id_uploadNew;
         }
         $languages = config('app.languages');
@@ -201,7 +180,7 @@ class PostController extends BaseController
                 $post_meta->save();
             }
             $meta_data = $post->post_meta()->get();
-            return $this->handleRespondSuccess('update success', [
+            return $this->handleRespondSuccess('update post success', [
                 'post' => $post,
                 'post_meta' => $meta_data
             ]);
@@ -255,11 +234,10 @@ class PostController extends BaseController
                     }
                     $post->forceDelete();
                 }
-
             }
-            return $this->handleRespondSuccess('delete success', []);
+            return $this->handleRespondSuccess('delete post success', []);
         }
-        return $this->handleRespondError('delete false');
+        return $this->handleRespondError('delete post false');
     }
 
     public function restore(Request $request)
@@ -277,7 +255,7 @@ class PostController extends BaseController
             $post->status = 'active';
             $post->save();
         }
-        return $this->handleRespondSuccess('restore success', true);
+        return $this->handleRespondSuccess('restore post success', true);
     }
 }
 
