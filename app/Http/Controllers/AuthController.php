@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AuthRequest;
+use App\Http\Requests\DeleteRequest;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Auth\Events\Registered;
@@ -26,14 +27,8 @@ class AuthController extends BaseController
         return $this->respondWithToken($token);
     }
 
-    public function register(Request $request)
+    public function register(AuthRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|between:2,100',
-            'email' => 'required|string|email|max:100',
-            'password' => 'required|string',
-            'roles' => 'required|array'
-        ]);
         $role_id = $request->roles;
         $user = new User();
         $user->name = $request->name;
@@ -46,14 +41,8 @@ class AuthController extends BaseController
     }
 
 
-    public function update(Request $request)
+    public function update(AuthRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|between:2,100',
-            'email' => 'required|string|email|max:100',
-            'password' => 'required|string|confirmed|min:6',
-            'roles' => 'required|array'
-        ]);
         $user = Auth::user();
         $path = 'public' . Str::after($user->avatar, 'storage');
         Storage::delete($path);
@@ -64,12 +53,8 @@ class AuthController extends BaseController
         return $this->handleRespondSuccess('update success', $user);
     }
 
-    public function destroy(Request $request)
+    public function destroy(DeleteRequest $request)
     {
-        $request->validate([
-            'ids' => 'required',
-            'option' => 'required|in:delete,forceDelete'
-        ]);
         $user_delete = $request->input('ids');
         $option = $request->option;
         $users = User::withTrashed()->whereIn('id', $user_delete)->get();

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DeleteRequest;
 use App\Models\Article;
 use App\Models\ArticleDetail;
 use App\Models\Upload;
@@ -193,15 +194,11 @@ class ArticleController extends BaseController
     }
 
 
-    public function destroy(Request $request)
+    public function destroy(DeleteRequest $request)
     {
         if (!Auth::user()->hasPermission('delete')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $request->validate([
-            'ids' => 'required',
-            'option' => 'required|in:delete,forceDelete'
-        ]);
         $article_delete = $request->input('ids');
         $option = $request->option;
         $articles = Article::withTrashed()->whereIn('id', $article_delete)->get();

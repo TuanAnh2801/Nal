@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DeleteRequest;
+use App\Http\Requests\RestoreRequest;
 use App\Models\Post;
 use App\Http\Requests\PostRequest;
 use App\Models\PostDetail;
@@ -204,15 +206,11 @@ class PostController extends BaseController
 
     }
 
-    public function destroy(Request $request)
+    public function destroy(DeleteRequest $request)
     {
         if (!Auth::user()->hasPermission('delete')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $request->validate([
-            'ids' => 'required',
-            'option' => 'required|in:delete,forceDelete'
-        ]);
         $post_delete = $request->input('ids');
         $option = $request->option;
         $posts = Post::withTrashed()->whereIn('id', $post_delete)->get();
@@ -240,14 +238,11 @@ class PostController extends BaseController
         return $this->handleRespondError('delete post false');
     }
 
-    public function restore(Request $request)
+    public function restore(RestoreRequest $request)
     {
         if (!Auth::user()->hasPermission('update')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $request->validate([
-            'ids' => 'required',
-        ]);
         $post_ids = $request->input('ids');
         Post::onlyTrashed()->whereIn('id', $post_ids)->restore();
         foreach ($post_ids as $post_id) {

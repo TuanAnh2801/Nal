@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ApproveArticleRequest;
+use App\Http\Requests\DeleteRequest;
+use App\Http\Requests\UserRequest;
 use App\Mail\Mailback;
 use App\Models\Article;
 use App\Models\Post;
@@ -44,17 +47,12 @@ class UserController extends BaseController
         return $this->handleRespondSuccess('Get posts successfully', $users);
 
     }
-    public function create(Request $request)
+    public function create(UserRequest $request)
     {
         if (!Auth::user()->hasPermission('create')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $request->validate([
-            'name' => 'required|string|between:2,100',
-            'email' => 'required|string|email|max:100',
-            'password' => 'required|string',
-            'roles' => 'required|array'
-        ]);
+
         $id_uploads = $request->uploadId;
         $id_upload = implode(',', $id_uploads);
         $role_id = $request->roles;
@@ -109,17 +107,11 @@ class UserController extends BaseController
 
     }
 
-    public function updateAll(Request $request, User $user)
+    public function updateAll(UserRequest $request, User $user)
     {
         if (!Auth::user()->hasPermission('update')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $request->validate([
-            'name' => 'required|string|between:2,100',
-            'email' => 'required|string|email|max:100',
-            'password' => 'required|string',
-            'roles' => 'required|array'
-        ]);
         $id_uploads = $request->uploadId;
         $removal_folder = $request->removalFolder;
         if ($id_uploads) {
@@ -145,14 +137,8 @@ class UserController extends BaseController
         return $this->handleRespondSuccess('update user success', $user);
     }
 
-    public function update(Request $request)
+    public function update(UserRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|between:2,100',
-            'email' => 'required|string|email|max:100',
-            'password' => 'required|string',
-            'roles' => 'required|array'
-        ]);
         $user = Auth::user();
         $id_uploads = $request->uploadId;
         $removal_folder = $request->removalFolder;
@@ -179,15 +165,11 @@ class UserController extends BaseController
         return $this->handleRespondSuccess('update profile success', $user);
     }
 
-    public function approveArticle(Request $request)
+    public function approveArticle(ApproveArticleRequest $request)
     {
         if (!Auth::user()->hasPermission('update')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $request->validate([
-            'status' => 'required|string|in:published,reject',
-            'reason' => 'string',
-        ]);
         $status = $request->status;
         $reason = $request->reason;
         $id_article = $request->idArticle;
@@ -266,16 +248,11 @@ class UserController extends BaseController
     }
 
 
-    public function destroy(Request $request)
+    public function destroy(DeleteRequest $request)
     {
         if (!Auth::user()->hasPermission('delete')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-
-        $request->validate([
-            'ids' => 'required',
-            'option' => 'required|in:delete,forceDelete'
-        ]);
         $user_delete = $request->input('ids');
         $option = $request->option;
         $users = User::withTrashed()->whereIn('id', $user_delete)->get();
@@ -304,10 +281,6 @@ class UserController extends BaseController
 
     public function setMood(Request $request)
     {
-        $request->validate([
-            'key' => 'required',
-            'value' => 'required|array',
-        ]);
         $key = $request->key;
         $value = $request->value;
         $user_metas = $request->user()->user_meta();

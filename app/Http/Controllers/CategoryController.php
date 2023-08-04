@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RestoreRequest;
 use App\Models\Category;
 use App\Http\Requests\CategoryRequest;
 use App\Models\Upload;
@@ -115,10 +116,6 @@ class CategoryController extends BaseController
         if (!Auth::user()->hasPermission('delete')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $request->validate([
-            'ids' => 'required',
-            'option' => 'required|in:delete,forceDelete'
-        ]);
         $category_delete = $request->input('ids');
         $option = $request->option;
         $categories = Category::withTrashed()->whereIn('id', $category_delete)->get();
@@ -146,14 +143,11 @@ class CategoryController extends BaseController
         }
     }
 
-    public function restore(Request $request)
+    public function restore(RestoreRequest $request)
     {
         if (!Auth::user()->hasPermission('update')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $request->validate([
-            'ids' => 'required',
-        ]);
         $category_ids = $request->input('ids');
         Category::onlyTrashed()->whereIn('id', $category_ids)->restore();
         foreach ($category_ids as $category_id) {

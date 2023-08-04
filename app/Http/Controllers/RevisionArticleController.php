@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RestoreRequest;
 use App\Models\Article;
 use App\Models\Revision;
 use App\Models\RevisionDetail;
-use App\Models\Upload;
 use App\Traits\HasPermission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +14,6 @@ use App\Http\Requests\RevisionRequest;
 class RevisionArticleController extends BaseController
 {
     use HasPermission;
-
     public function index(Request $request)
     {
         $language = $request->input('language');
@@ -151,9 +150,6 @@ class RevisionArticleController extends BaseController
 
     public function review(Request $request)
     {
-        $request->validate([
-            'approve_id' => 'required',
-        ]);
         $approve_id = $request->approve_id;
         $revision_approve = Revision::where('id', $approve_id)->first();
         $revision_approve->status = 'pending';
@@ -161,14 +157,11 @@ class RevisionArticleController extends BaseController
         return $this->handleRespondSuccess('request has been sent', $revision_approve);
     }
 
-    public function destroy(Request $request)
+    public function destroy(RestoreRequest $request)
     {
         if (!Auth::user()->hasPermission('delete')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-        $request->validate([
-            'ids' => 'required',
-        ]);
         $revision_delete = $request->input('ids');
         $revisions = Revision::whereIn('id', $revision_delete);
         if ($revisions) {

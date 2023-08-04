@@ -14,121 +14,74 @@ use App\Models\Article;
 use App\Http\Controllers\TopPageController;
 use App\Http\Controllers\RevisionArticleController;
 use App\Http\Controllers\DashboardController;
+
 Route::group([
-    'prefix' => 'user'
+    'middleware' => 'jwt.auth'
 ], function () {
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/register', [AuthController::class, 'register']);
-});
-// Media
-Route::group([
-    'middlaware' => 'jwt.auth',
-    'prefix' => 'media'
-], function () {
-    Route::delete('/{media}', [MediaController::class, 'destroy']);
-    Route::post('/create', [MediaController::class, 'store']);
-    Route::post('/update/{media}', [MediaController::class, 'update']);
-    Route::get('/index', [MediaController::class, 'index']);
-});
+    Route::post('/user/login', [AuthController::class, 'login']);
+    Route::post('/user/register', [AuthController::class, 'register']);
+
 //Upload
-Route::group([
-    'middleware' => 'jwt.auth',
-    'prefix' => 'upload'
-], function () {
-    Route::post('/create', [UploadController::class, 'create']);
-    Route::post('/upload', [UploadController::class, 'upload']);
-});
+    Route::post('/upload/create', [UploadController::class, 'create']);
+    Route::post('/upload/upload', [UploadController::class, 'upload']);
+
 //Category
-Route::group([
-    'middleware' => 'jwt.auth',
-    'prefix' => 'category'
-], function () {
-    Route::delete('/delete', [CategoryController::class, 'destroy'])->middleware('can:delete,App\Models\Category');
-    Route::post('/create', [CategoryController::class, 'store'])->middleware('can:create,App\Models\Category');
-    Route::put('/update/{category}', [CategoryController::class, 'update'])->middleware('can:update,category');
-    Route::get('/{category} ', [CategoryController::class, 'show']);
-    Route::post('/restore', [CategoryController::class, 'restore'])->middleware('can:restore,App\Models\Category');
-    Route::get('/', [CategoryController::class, 'index']);
+    Route::delete('/category/delete', [CategoryController::class, 'destroy'])->middleware('can:delete,App\Models\Category');
+    Route::post('/category/create', [CategoryController::class, 'store'])->middleware('can:create,App\Models\Category');
+    Route::put('/category/update/{category}', [CategoryController::class, 'update'])->middleware('can:update,category');
+    Route::get('/category/{category} ', [CategoryController::class, 'show']);
+    Route::post('/category/restore', [CategoryController::class, 'restore'])->middleware('can:restore,App\Models\Category');
+    Route::get('/category/', [CategoryController::class, 'index']);
 
-});
 // post
-Route::group([
-    'middleware' => 'jwt.auth',
-    'prefix' => 'post'
-], function () {
-    Route::delete('/delete', [PostController::class, 'destroy'])->middleware('can:delete,App\Models\Post');
-    Route::post('/restore', [PostController::class, 'restore'])->middleware('can:restore,App\Models\Post');
-    Route::post('/create', [PostController::class, 'store'])->can('create', Post::class);;
-    Route::put('/update/{post}', [PostController::class, 'update'])->middleware('can:update,post');
-    Route::get('/{post}', [PostController::class, 'show']);
-    Route::put('/updateDetail/{post}', [PostController::class, 'update_postDetail'])->middleware('can:update,post');
-    Route::get('/', [PostController::class, 'index'])->middleware('can:show,App\Models\Post');
-});
+    Route::delete('/post/delete', [PostController::class, 'destroy'])->middleware('can:delete,App\Models\Post');
+    Route::post('/post/restore', [PostController::class, 'restore'])->middleware('can:restore,App\Models\Post');
+    Route::post('/post/create', [PostController::class, 'store'])->can('create', Post::class);;
+    Route::put('/post/update/{post}', [PostController::class, 'update'])->middleware('can:update,post');
+    Route::get('/post/{post}', [PostController::class, 'show']);
+    Route::put('/post/updateDetail/{post}', [PostController::class, 'update_postDetail'])->middleware('can:update,post');
+    Route::get('/post/', [PostController::class, 'index'])->middleware('can:show,App\Models\Post');
+
 // article
-Route::group([
-    'middleware' => 'jwt.auth',
-    'prefix' => 'article'
-], function () {
-    Route::delete('/delete', [ArticleController::class, 'destroy'])->middleware('can:delete,App\Models\Article');
-    Route::post('/create', [ArticleController::class, 'store'])->can('create', Article::class);;
-    Route::put('/update/{article}', [ArticleController::class, 'update'])->middleware('can:update,article');
-    Route::get('/{article}', [ArticleController::class, 'show'])->middleware('can:read,article');
-    Route::put('/updateDetail/{article}', [ArticleController::class, 'update_Detail'])->middleware('can:update,article');
-    Route::post('/restore', [ArticleController::class, 'restore'])->middleware('can:restore,App\Models\Article');
-    Route::get('/', [ArticleController::class, 'index'])->middleware('can:show,App\Models\Article');
+    Route::delete('/article/delete', [ArticleController::class, 'destroy'])->middleware('can:delete,App\Models\Article');
+    Route::post('/article/create', [ArticleController::class, 'store'])->can('create', Article::class);;
+    Route::put('/article/update/{article}', [ArticleController::class, 'update'])->middleware('can:update,article');
+    Route::get('/article/{article}', [ArticleController::class, 'show'])->middleware('can:read,article');
+    Route::put('/article/updateDetail/{article}', [ArticleController::class, 'update_Detail'])->middleware('can:update,article');
+    Route::post('/article/restore', [ArticleController::class, 'restore'])->middleware('can:restore,App\Models\Article');
+    Route::get('/article/', [ArticleController::class, 'index'])->middleware('can:show,App\Models\Article');
 
-});
 // revision
-Route::group([
-    'middleware' => 'jwt.auth',
-    'prefix' => 'revision'
-], function () {
-    Route::delete('/delete', [RevisionArticleController::class, 'destroy'])->middleware('can:delete,App\Models\Revision');
-    Route::post('/create/{article}', [RevisionArticleController::class, 'store'])->middleware('can:create,App\Models\Revision');
-    Route::get('/{article}', [RevisionArticleController::class, 'show'])->middleware('can:show ,App\Models\Revision');
-    Route::put('/update/{revision}/{article}', [RevisionArticleController::class, 'update'])->middleware('can:update,revision');
-    Route::put('/updateDetail/{revision}', [RevisionArticleController::class, 'update_Detail'])->middleware('can:update,revision');
-    Route::post('/review', [RevisionArticleController::class, 'review'])->middleware('can:update,App\Models\Revision');
-    Route::post('/restore', [RevisionArticleController::class, 'restore'])->middleware('can:restore,App\Models\Revision');
-    Route::get('/', [RevisionArticleController::class, 'index'])->middleware('can:show,App\Models\Revision');
+    Route::delete('/revision/delete', [RevisionArticleController::class, 'destroy'])->middleware('can:delete,App\Models\Revision');
+    Route::post('/revision/create/{article}', [RevisionArticleController::class, 'store'])->middleware('can:create,App\Models\Revision');
+    Route::get('/revision/{article}', [RevisionArticleController::class, 'show'])->middleware('can:show ,App\Models\Revision');
+    Route::put('/revision/update/{revision}/{article}', [RevisionArticleController::class, 'update'])->middleware('can:update,revision');
+    Route::put('/revision/updateDetail/{revision}', [RevisionArticleController::class, 'update_Detail'])->middleware('can:update,revision');
+    Route::post('/revision/review', [RevisionArticleController::class, 'review'])->middleware('can:update,App\Models\Revision');
+    Route::post('/revision/restore', [RevisionArticleController::class, 'restore'])->middleware('can:restore,App\Models\Revision');
+    Route::get('/revision/', [RevisionArticleController::class, 'index'])->middleware('can:show,App\Models\Revision');
 
-});
 // topPage
-Route::group([
-    'middleware' => 'jwt.auth',
-    'prefix' => 'topPage'
-], function () {
-    Route::post('/create', [TopPageController::class, 'store'])->middleware('can:create,App\Models\TopPage');
-    Route::put('/update/{topPage}', [TopPageController::class, 'update'])->middleware('can:update,topPage');
-    Route::get('/{topPage}', [TopPageController::class, 'show'])->middleware('can:show,topPage');
-    Route::put('/updateDetail/{topPage}', [TopPageController::class, 'update_Detail'])->middleware('can:update,topPage');
-
-});
+    Route::post('/topPage/create', [TopPageController::class, 'store'])->middleware('can:create,App\Models\TopPage');
+    Route::put('/topPage/update/{topPage}', [TopPageController::class, 'update'])->middleware('can:update,topPage');
+    Route::get('/topPage/{topPage}', [TopPageController::class, 'show'])->middleware('can:show,topPage');
+    Route::put('/topPage/updateDetail/{topPage}', [TopPageController::class, 'update_Detail'])->middleware('can:update,topPage');
 // dashboard
-Route::group([
-    'middleware' => 'jwt.auth',
-    'prefix' => 'show'
-], function () {
-    Route::get('/dashboard', [DashboardController::class, 'dashboard']);
-});
-// Phân quyền
-Route::group([
-    'middleware' => 'jwt.auth',
-    'prefix' => 'user'
-], function () {
-    Route::delete('/delete', [UserController::class, 'destroy'])->middleware('can:delete,App\Models\User');
-    Route::get('/', [UserController::class, 'show'])->middleware('can:show,App\Models\User');
-    Route::post('/create', [UserController::class, 'create'])->middleware('can:create,App\Models\User');
-    Route::put('/update', [UserController::class, 'update']);
-    Route::put('/update/{user}', [UserController::class, 'updateAll'])->middleware('can:updateAll,user');
-    Route::post('/approveArticle', [UserController::class, 'approveArticle'])->middleware('can:status,App\Models\User');
-    Route::post('/approveRevision/{revision}', [UserController::class, 'approveRevision'])->middleware('can:status,App\Models\User');
-    Route::post('/setMood', [UserController::class, 'setMood']);
-    Route::put('/updateMood/{user_meta}', [UserController::class, 'updateMood']);
-    Route::post('/getMood', [UserController::class, 'getMood']);
-    Route::get('/view', [UserController::class, 'index'])->middleware('can:viewAll,App\Models\User');
-    Route::get('/viewMe', [UserController::class, 'view']);
+    Route::get('/show/dashboard', [DashboardController::class, 'dashboard']);
 
+// Phân quyền
+    Route::delete('/user/delete', [UserController::class, 'destroy'])->middleware('can:delete,App\Models\User');
+    Route::get('/user/', [UserController::class, 'show'])->middleware('can:show,App\Models\User');
+    Route::post('/user/create', [UserController::class, 'create'])->middleware('can:create,App\Models\User');
+    Route::put('/user/update', [UserController::class, 'update']);
+    Route::put('/user/update/{user}', [UserController::class, 'updateAll'])->middleware('can:updateAll,user');
+    Route::post('/user/approveArticle', [UserController::class, 'approveArticle'])->middleware('can:status,App\Models\User');
+    Route::post('/user/approveRevision/{revision}', [UserController::class, 'approveRevision'])->middleware('can:status,App\Models\User');
+    Route::post('/user/setMood', [UserController::class, 'setMood']);
+    Route::put('/user/updateMood/{user_meta}', [UserController::class, 'updateMood']);
+    Route::post('/user/getMood', [UserController::class, 'getMood']);
+    Route::get('/user/view', [UserController::class, 'index'])->middleware('can:viewAll,App\Models\User');
+    Route::get('/user/viewMe', [UserController::class, 'view']);
 
 });
 
