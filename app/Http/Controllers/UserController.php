@@ -43,7 +43,6 @@ class UserController extends BaseController
             $query = $query->where('title', 'LIKE', '%' . $search . '%');
         }
         $users = $query->orderBy($sort_by, $sort)->paginate($limit);
-
         return $this->handleRespondSuccess('Get posts successfully', $users);
 
     }
@@ -52,7 +51,6 @@ class UserController extends BaseController
         if (!Auth::user()->hasPermission('create')) {
             return $this->handleRespondError('you do not have access')->setStatusCode(403);
         }
-
         $id_uploads = $request->uploadId;
         $id_upload = implode(',', $id_uploads);
         $role_id = $request->roles;
@@ -158,7 +156,7 @@ class UserController extends BaseController
             $id_uploadNew = implode(',', $id_uploadNew);
             $user->upload_id = $id_uploadNew;
         }
-        $user->name = $request->name;
+            $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
         $user->save();

@@ -34,7 +34,7 @@ class UserPolicy
     }
     public function updateAll(User $user)
     {
-        return $user->hasPermission('update');
+
     }
 
     public function delete(User $user)

@@ -125,6 +125,7 @@ class CategoryController extends BaseController
                     $category->status = 'deactivate';
                     $category->save();
                     $category->delete();
+                    return $this->handleRespondSuccess('delete category success', []);
                 } elseif ($option === 'forceDelete') {
                     $upload_id = $category->upload_id;
                     $upload_id = explode(',', $upload_id);
@@ -135,9 +136,9 @@ class CategoryController extends BaseController
                         $path = 'public' . Str::after($url, 'storage');
                         Storage::delete($path);
                         $category->forceDelete();
+                        return $this->handleRespondSuccess('delete category success', []);
                     }
                 }
-                return $this->handleRespondSuccess('delete category success', []);
             }
             return $this->handleRespondError('delete category false');
         }

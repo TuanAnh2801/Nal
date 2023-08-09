@@ -29,6 +29,7 @@ class AuthController extends BaseController
 
     public function register(AuthRequest $request)
     {
+
         $role_id = $request->roles;
         $user = new User();
         $user->name = $request->name;
@@ -41,42 +42,10 @@ class AuthController extends BaseController
     }
 
 
-    public function update(AuthRequest $request)
-    {
-        $user = Auth::user();
-        $path = 'public' . Str::after($user->avatar, 'storage');
-        Storage::delete($path);
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->password = Hash::make($request->password);
-        $user->save();
-        return $this->handleRespondSuccess('update success', $user);
-    }
-
-    public function destroy(DeleteRequest $request)
-    {
-        $user_delete = $request->input('ids');
-        $option = $request->option;
-        $users = User::withTrashed()->whereIn('id', $user_delete)->get();
-        if ($users) {
-            foreach ($users as $user) {
-                $user->save();
-                if ($option === 'delete') {
-                    $user->delete();
-                } elseif ($option === 'forceDelete') {
-                    $user->forceDelete();
-                }
-
-            }
-            return $this->handleRespondSuccess('delete success', []);
-        }
-        return $this->handleRespondError('delete false');
-    }
-
     public function logout()
     {
-        auth()->logout();
 
+        auth()->logout();
         return response()->json(['message' => 'Successfully logged out']);
     }
 

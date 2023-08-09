@@ -2,7 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\MediaController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\VerifyEmailController;
@@ -14,16 +13,16 @@ use App\Models\Article;
 use App\Http\Controllers\TopPageController;
 use App\Http\Controllers\RevisionArticleController;
 use App\Http\Controllers\DashboardController;
+use Illuminate\Support\Facades\Request;
 
+//Authentication
+Route::post('/user/login', [AuthController::class, 'login']);
+Route::post('/user/register', [AuthController::class, 'register']);
 Route::group([
     'middleware' => 'jwt.auth'
 ], function () {
-    Route::post('/user/login', [AuthController::class, 'login']);
-    Route::post('/user/register', [AuthController::class, 'register']);
-
 //Upload
     Route::post('/upload/create', [UploadController::class, 'create']);
-    Route::post('/upload/upload', [UploadController::class, 'upload']);
 
 //Category
     Route::delete('/category/delete', [CategoryController::class, 'destroy'])->middleware('can:delete,App\Models\Category');
@@ -55,7 +54,7 @@ Route::group([
     Route::delete('/revision/delete', [RevisionArticleController::class, 'destroy'])->middleware('can:delete,App\Models\Revision');
     Route::post('/revision/create/{article}', [RevisionArticleController::class, 'store'])->middleware('can:create,App\Models\Revision');
     Route::get('/revision/{article}', [RevisionArticleController::class, 'show'])->middleware('can:show ,App\Models\Revision');
-    Route::put('/revision/update/{revision}/{article}', [RevisionArticleController::class, 'update'])->middleware('can:update,revision');
+    Route::put('/revision/update/{revision}', [RevisionArticleController::class, 'update'])->middleware('can:update,revision');
     Route::put('/revision/updateDetail/{revision}', [RevisionArticleController::class, 'update_Detail'])->middleware('can:update,revision');
     Route::post('/revision/review', [RevisionArticleController::class, 'review'])->middleware('can:update,App\Models\Revision');
     Route::post('/revision/restore', [RevisionArticleController::class, 'restore'])->middleware('can:restore,App\Models\Revision');
@@ -71,14 +70,13 @@ Route::group([
 
 // Phân quyền
     Route::delete('/user/delete', [UserController::class, 'destroy'])->middleware('can:delete,App\Models\User');
-    Route::get('/user/', [UserController::class, 'show'])->middleware('can:show,App\Models\User');
+    Route::get('/user', [UserController::class, 'show'])->middleware('can:show,App\Models\User');
     Route::post('/user/create', [UserController::class, 'create'])->middleware('can:create,App\Models\User');
     Route::put('/user/update', [UserController::class, 'update']);
     Route::put('/user/update/{user}', [UserController::class, 'updateAll'])->middleware('can:updateAll,user');
     Route::post('/user/approveArticle', [UserController::class, 'approveArticle'])->middleware('can:status,App\Models\User');
     Route::post('/user/approveRevision/{revision}', [UserController::class, 'approveRevision'])->middleware('can:status,App\Models\User');
     Route::post('/user/setMood', [UserController::class, 'setMood']);
-    Route::put('/user/updateMood/{user_meta}', [UserController::class, 'updateMood']);
     Route::post('/user/getMood', [UserController::class, 'getMood']);
     Route::get('/user/view', [UserController::class, 'index'])->middleware('can:viewAll,App\Models\User');
     Route::get('/user/viewMe', [UserController::class, 'view']);
